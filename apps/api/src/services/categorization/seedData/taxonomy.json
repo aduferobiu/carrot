@@ -1,0 +1,148 @@
+{
+  "fallback_category": "Others",
+  "categories": [
+    {
+      "name": "Food & Dining",
+      "kind": "expense",
+      "icon": "cart",
+      "color": "#16A34A",
+      "subcategories": [
+        { "name": "Supermarkets & Groceries", "keywords": ["shoprite", "spar", "supermart", "addide", "justrite", "ebeano", "grocery"] },
+        { "name": "Restaurants & Dining Out", "keywords": ["restaurant", "eatery", "dominos", "mr biggs", "tastee", "kfc"] },
+        { "name": "Fast Food & Delivery Apps", "keywords": ["chicken republic", "jumia food", "glovo", "chowdeck", "bolt food"] },
+        { "name": "Local Market & Street Food", "keywords": ["market", "mama put", "buka", "bukateria", "roadside"] }
+      ]
+    },
+    {
+      "name": "Transportation",
+      "kind": "expense",
+      "icon": "car",
+      "color": "#2563EB",
+      "subcategories": [
+        { "name": "Ride-hailing", "keywords": ["uber", "bolt", "indrive", "rida"] },
+        { "name": "Fuel & Filling Stations", "keywords": ["fuel", "petrol", "filling station", "oando", "mobil", "total", "nnpc", "conoil"] },
+        { "name": "Public Transport", "keywords": ["danfo", "keke", "brt", "molue"] },
+        { "name": "Parking & Tolls", "keywords": ["parking", "toll", "lekki toll"] }
+      ]
+    },
+    {
+      "name": "Utilities & Bills",
+      "kind": "expense",
+      "icon": "zap",
+      "color": "#D97706",
+      "subcategories": [
+        { "name": "Electricity (Discos)", "keywords": ["ikedc", "ekedc", "aedc", "phed", "kedco", "jed", "eedc", "bedc", "kaedco", "electricity"] },
+        { "name": "TV & Cable Subscriptions", "keywords": ["dstv", "gotv", "startimes"] },
+        { "name": "Airtime & Data", "keywords": ["airtime", "recharge", "mtn", "airtel", "glo", "9mobile"] },
+        { "name": "Water & Waste", "keywords": ["water rate", "lawma", "waste"] }
+      ]
+    },
+    {
+      "name": "Healthcare",
+      "kind": "expense",
+      "icon": "health",
+      "color": "#DC2626",
+      "subcategories": [
+        { "name": "Hospitals & Clinics", "keywords": ["hospital", "clinic", "medic", "teaching hospital"] },
+        { "name": "Pharmacy & Chemist", "keywords": ["pharmacy", "chemist", "medplus"] },
+        { "name": "Health Insurance / HMO", "keywords": ["hmo", "health insurance", "avon", "hygeia", "reliance hmo"] }
+      ]
+    },
+    {
+      "name": "Education",
+      "kind": "expense",
+      "icon": "book",
+      "color": "#4F46E5",
+      "subcategories": [
+        { "name": "Tuition & School Fees", "keywords": ["school fees", "tuition", "university", "polytechnic"] },
+        { "name": "Exam & Registration Fees", "keywords": ["waec", "jamb", "neco", "post-utme"] },
+        { "name": "Books & Learning Materials", "keywords": ["bookshop", "textbook", "course material"] }
+      ]
+    },
+    {
+      "name": "Shopping",
+      "kind": "expense",
+      "icon": "bag",
+      "color": "#9333EA",
+      "subcategories": [
+        { "name": "Online Marketplaces", "keywords": ["jumia", "konga", "temu", "aliexpress"] },
+        { "name": "Fashion & Apparel", "keywords": ["boutique", "fashion", "mall", "clothing"] },
+        { "name": "Electronics & Gadgets", "keywords": ["slot", "pointek", "laptop"] }
+      ]
+    },
+    {
+      "name": "Entertainment & Leisure",
+      "kind": "expense",
+      "icon": "play",
+      "color": "#DB2777",
+      "subcategories": [
+        { "name": "Streaming & Digital Media", "keywords": ["netflix", "spotify", "apple music", "showmax"] },
+        { "name": "Cinema & Events", "keywords": ["cinema", "filmhouse", "silverbird"] },
+        { "name": "Nightlife & Social", "keywords": ["lounge"] }
+      ]
+    },
+    {
+      "name": "Family & Social Obligations",
+      "kind": "expense",
+      "icon": "building",
+      "color": "#7C3AED",
+      "subcategories": [
+        { "name": "Family Support / Upkeep", "keywords": ["upkeep", "family support"] },
+        { "name": "Worship & Religious Giving", "keywords": ["zakat", "mosque", "church", "tithe", "offering"] },
+        { "name": "Gifts & Celebrations", "keywords": ["owambe"] }
+      ]
+    },
+    {
+      "name": "Savings & Investments",
+      "kind": "expense",
+      "icon": "trend",
+      "color": "#0D9488",
+      "subcategories": [
+        { "name": "Digital Savings Platforms", "keywords": ["piggyvest", "cowrywise", "autosave", "owealth withdrawal"] },
+        { "name": "Investment Platforms", "keywords": ["risevest", "bamboo", "chaka", "trove"] },
+        { "name": "Ajo / Esusu / Thrift Contributions", "keywords": ["ajo", "esusu", "thrift"] }
+      ]
+    },
+    {
+      "name": "Transfers & Cash",
+      "kind": "expense",
+      "icon": "swap",
+      "color": "#64748B",
+      "subcategories": [
+        { "name": "Outgoing Transfers", "keywords": ["transfer to", "sent to", "wire transfer", "money sent"] },
+        { "name": "Incoming Transfers (non-income)", "keywords": ["received from", "credit alert", "money received"] },
+        { "name": "Cash Withdrawal", "keywords": ["atm", "cash withdrawal"] }
+      ]
+    },
+    {
+      "name": "Income",
+      "kind": "income",
+      "icon": "income",
+      "color": "#059669",
+      "subcategories": [
+        { "name": "Salary & Payroll", "keywords": ["salary", "payroll"] },
+        { "name": "Business & Freelance Income", "keywords": ["invoice payment", "freelance", "client payment"] },
+        { "name": "Other Income", "keywords": ["refund", "reversal", "owealth interest earned", "bank deposit"] }
+      ]
+    },
+    {
+      "name": "Fees & Charges",
+      "kind": "expense",
+      "icon": "cash",
+      "color": "#EA580C",
+      "subcategories": [
+        { "name": "Bank Charges", "keywords": ["sms alert", "maintenance fee", "stamp duty", "electronic money transfer levy"] },
+        { "name": "Loan Repayments", "keywords": ["loan repayment"] }
+      ]
+    },
+    {
+      "name": "Other",
+      "kind": "expense",
+      "icon": "grid",
+      "color": "#6B7280",
+      "subcategories": [
+        { "name": "Others", "keywords": [] }
+      ]
+    }
+  ]
+}

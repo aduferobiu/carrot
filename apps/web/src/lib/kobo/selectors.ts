@@ -1,0 +1,316 @@
+import { Account, Budget, Category, Subscription, Transaction } from "./data";
+import { addMonths, dateLabel, naira, rgba, timeLabel } from "./format";
+
+const FALLBACK_CATEGORY: Category = {
+  id: "",
+  user_id: null,
+  name: "Others",
+  kind: "expense",
+  icon: "grid",
+  color: "#6B7280",
+  is_default: true,
+  parent_id: null,
+};
+
+export function catById(categories: Category[], id: string | null): Category {
+  if (!id) return FALLBACK_CATEGORY;
+  return categories.find((c) => c.id === id) ?? FALLBACK_CATEGORY;
+}
+
+export function accById(accounts: Account[], id: string): Account {
+  return (
+    accounts.find((a) => a.id === id) ?? {
+      id,
+      user_id: "",
+      name: "",
+      type: "",
+      institution_name: null,
+      masked_number: null,
+      balance: 0,
+      currency: "NGN",
+      mono_account_id: null,
+      created_at: "",
+    }
+  );
+}
+
+export function sortedTx(transactions: Transaction[]): Transaction[] {
+  return [...transactions].sort((a, b) => b.occurred_at.localeCompare(a.occurred_at));
+}
+
+export function filteredTx(
+  transactions: Transaction[],
+  filters: { acc: string; cat: string; search: string },
+): Transaction[] {
+  let arr = sortedTx(transactions);
+  if (filters.acc !== "all") arr = arr.filter((t) => t.account_id === filters.acc);
+  if (filters.cat !== "all") arr = arr.filter((t) => t.category_id === filters.cat);
+  const q = filters.search.trim().toLowerCase();
+  if (q) {
+    arr = arr.filter((t) =>
+      ((t.description ?? "") + " " + (t.raw_description ?? "")).toLowerCase().includes(q),
+    );
+  }
+  return arr;
+}
+
+const SPEND_EXCLUDED_NAMES = new Set(["Transfers", "Savings"]);
+
+export function spendByCat(transactions: Transaction[], categories: Category[]): Record<string, number> {
+  const m: Record<string, number> = {};
+  transactions.forEach((t) => {
+    if (t.type !== "expense" || !t.category_id) return;
+    const cat = catById(categories, t.category_id);
+    if (SPEND_EXCLUDED_NAMES.has(cat.name)) return;
+    m[t.category_id] = (m[t.category_id] || 0) + t.amount;
+  });
+  return m;
+}
+
+export type TopCat = {
+  id: string;
+  name: string;
+  color: string;
+  icon: string;
+  fmt: string;
+  pct: number;
+  barW: string;
+};
+
+export function topCategories(spend: Record<string, number>, categories: Category[]): TopCat[] {
+  const entries = Object.entries(spend).sort((a, b) => b[1] - a[1]);
+  const total = entries.reduce((a, [, v]) => a + v, 0) || 1;
+  return entries.map(([id, amt]) => {
+    const c = catById(categories, id);
+    const pct = Math.round((amt / total) * 100);
+    return { id, name: c.name, color: c.color, icon: c.icon, fmt: naira(amt), pct, barW: pct + "%" };
+  });
+}
+
+export function donutGradient(spend: Record<string, number>, categories: Category[]): string {
+  const entries = Object.entries(spend).sort((a, b) => b[1] - a[1]);
+  const total = entries.reduce((a, [, v]) => a + v, 0) || 1;
+  let acc = 0;
+  const segs = entries.map(([id, amt]) => {
+    const c = catById(categories, id);
+    const start = (acc / total) * 100;
+    acc += amt;
+    const end = (acc / total) * 100;
+    return `${c.color} ${start.toFixed(1)}% ${end.toFixed(1)}%`;
+  });
+  if (!segs.length) return "#EFEFF3";
+  return `conic-gradient(${segs.join(",")})`;
+}
+
+export type BudgetView = {
+  id: string;
+  cat: string;
+  catName: string;
+  catColor: string;
+  icon: string;
+  iconBg: string;
+  amount: number;
+  spent: number;
+  spentFmt: string;
+  amtFmt: string;
+  leftFmt: string;
+  overFmt: string;
+  pct: number;
+  barW: string;
+  status: "over" | "warn" | "ok";
+  barColor: string;
+  statusLabel: string;
+};
+
+/** `spent` is computed here from transactions within the budget's month, not stored. */
+export function budgetsView(budgets: Budget[], transactions: Transaction[], categories: Category[]): BudgetView[] {
+  return budgets.map((b) => {
+    const c = catById(categories, b.category_id);
+    const periodEnd = addMonths(b.period_start, 1);
+    const spent = transactions
+      .filter(
+        (t) =>
+          t.category_id === b.category_id &&
+          t.type === "expense" &&
+          t.occurred_at >= b.period_start &&
+          t.occurred_at < periodEnd,
+      )
+      .reduce((a, t) => a + t.amount, 0);
+    const pct = b.amount > 0 ? Math.round((spent / b.amount) * 100) : 0;
+    const status = pct >= 100 ? "over" : pct >= 80 ? "warn" : "ok";
+    const barColor = status === "over" ? "#EF4444" : status === "warn" ? "#F59E0B" : c.color;
+    return {
+      id: b.id,
+      cat: b.category_id,
+      catName: c.name,
+      catColor: c.color,
+      icon: c.icon,
+      iconBg: rgba(c.color, 0.12),
+      amount: b.amount,
+      spent,
+      spentFmt: naira(spent),
+      amtFmt: naira(b.amount),
+      leftFmt: naira(Math.max(0, b.amount - spent)),
+      overFmt: naira(Math.max(0, spent - b.amount)),
+      pct,
+      barW: Math.min(100, pct) + "%",
+      status,
+      barColor,
+      statusLabel:
+        status === "over"
+          ? "Over by " + naira(spent - b.amount)
+          : status === "warn"
+            ? "Almost there"
+            : naira(b.amount - spent) + " left",
+    };
+  });
+}
+
+export function cashflowBars(data: { m: string; cred: number; deb: number }[]) {
+  const max = Math.max(...data.map((c) => Math.max(c.cred, c.deb)));
+  return data.map((c) => ({
+    m: c.m,
+    credH: Math.round((c.cred / max) * 150) + "px",
+    debH: Math.round((c.deb / max) * 150) + "px",
+    credFmt: naira(c.cred),
+    debFmt: naira(c.deb),
+  }));
+}
+
+export function trendBars(data: { m: string; cred: number; deb: number }[]) {
+  const max = Math.max(...data.map((c) => Math.max(c.cred, c.deb)));
+  return data.map((c) => ({ m: c.m, h: Math.round((c.deb / max) * 120) + "px", fmt: naira(c.deb) }));
+}
+
+const FREQUENCY_LABEL: Record<Subscription["frequency"], string> = {
+  weekly: "Weekly",
+  monthly: "Monthly",
+  yearly: "Yearly",
+};
+
+// A yearly subscription contributes 1/12 of its amount per month, a weekly
+// one contributes amount×4.33 (average weeks per month).
+const FREQUENCY_MONTHLY_MULTIPLIER: Record<Subscription["frequency"], number> = {
+  weekly: 4.33,
+  monthly: 1,
+  yearly: 1 / 12,
+};
+
+function titleCase(s: string): string {
+  return s.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+export function nextChargeLabel(dateStr: string | null): string {
+  if (!dateStr) return "Not enough history yet";
+  const target = new Date(dateStr + "T00:00:00");
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const days = Math.round((target.getTime() - today.getTime()) / 86400000);
+  if (days < 0) return "Overdue";
+  if (days === 0) return "Today";
+  if (days === 1) return "Tomorrow";
+  if (days <= 6) return `In ${days} days`;
+  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return `${target.getDate()} ${MONTHS[target.getMonth()]}`;
+}
+
+export type SubscriptionView = {
+  id: string;
+  name: string;
+  icon: string;
+  iconBg: string;
+  iconColor: string;
+  amtFmt: string;
+  freq: string;
+  nextLabel: string;
+  status: Subscription["status"];
+};
+
+export function subscriptionRowView(s: Subscription, categories: Category[]): SubscriptionView {
+  const c = catById(categories, s.category_id);
+  return {
+    id: s.id,
+    name: titleCase(s.merchant_label),
+    icon: c.icon,
+    iconBg: rgba(c.color, 0.12),
+    iconColor: c.color,
+    amtFmt: naira(s.average_amount),
+    freq: FREQUENCY_LABEL[s.frequency],
+    nextLabel: nextChargeLabel(s.predicted_next_charge_at),
+    status: s.status,
+  };
+}
+
+/** Excludes `dismissed` subscriptions (FR-09.6 — opted out, shouldn't
+ * reappear in any list or total) but keeps `needs_review` visible so a
+ * likely-cancelled subscription doesn't just silently vanish. */
+export function subscriptionsView(subscriptions: Subscription[], categories: Category[]): SubscriptionView[] {
+  return subscriptions.filter((s) => s.status !== "dismissed").map((s) => subscriptionRowView(s, categories));
+}
+
+export function monthlyRecurringTotal(subscriptions: Subscription[]): string {
+  const total = subscriptions
+    .filter((s) => s.status !== "dismissed")
+    .reduce((a, s) => a + s.average_amount * FREQUENCY_MONTHLY_MULTIPLIER[s.frequency], 0);
+  return naira(total);
+}
+
+export type TxViewRow = {
+  id: string;
+  title: string;
+  raw: string;
+  icon: string;
+  iconBg: string;
+  iconColor: string;
+  sub: string;
+  catName: string;
+  catColor: string;
+  accName: string;
+  amountFmt: string;
+  amountColor: string;
+  type: Transaction["type"];
+};
+
+export function txView(t: Transaction, accounts: Account[], categories: Category[]): TxViewRow {
+  const c = catById(categories, t.category_id);
+  const a = accById(accounts, t.account_id);
+  return {
+    id: t.id,
+    title: t.description || t.raw_description || "Transaction",
+    raw: t.raw_description ?? "",
+    icon: c.icon,
+    iconBg: rgba(c.color, 0.12),
+    iconColor: c.color,
+    sub: timeLabel(t.occurred_at) + " · " + a.name,
+    catName: c.name,
+    catColor: c.color,
+    accName: a.name,
+    amountFmt: (t.type === "income" ? "+ " : "– ") + naira(t.amount),
+    amountColor: t.type === "income" ? "#12B76A" : "#15171C",
+    type: t.type,
+  };
+}
+
+export function groupByDate(transactions: Transaction[]) {
+  const groups: { label: string; items: Transaction[] }[] = [];
+  let cur: { label: string; items: Transaction[] } | null = null;
+  transactions.forEach((t) => {
+    const lbl = dateLabel(t.occurred_at);
+    if (!cur || cur.label !== lbl) {
+      cur = { label: lbl, items: [] };
+      groups.push(cur);
+    }
+    cur.items.push(t);
+  });
+  return groups;
+}
+
+export function monthTotals(transactions: Transaction[], monthStart: string) {
+  const monthIn = transactions
+    .filter((t) => t.occurred_at >= monthStart && t.type === "income")
+    .reduce((a, b) => a + b.amount, 0);
+  const monthOut = transactions
+    .filter((t) => t.occurred_at >= monthStart && t.type === "expense")
+    .reduce((a, b) => a + b.amount, 0);
+  return { monthIn, monthOut, net: monthIn - monthOut };
+}

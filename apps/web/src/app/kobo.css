@@ -1,0 +1,209 @@
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+body {
+  font-family: var(--font-manrope), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background: #ebebef;
+  color: #15171c;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #d6d6dd;
+  border-radius: 10px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #c2c2cc;
+  background-clip: padding-box;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes growBar {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 20px);
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes sheetUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@media (max-width: 820px) {
+  html,
+  body {
+    overscroll-behavior-y: none;
+  }
+  body {
+    background: #ebebef;
+  }
+  .kb-sidebar {
+    display: none !important;
+  }
+  .kb-bottomnav {
+    display: flex !important;
+  }
+  .kb-content {
+    padding: 14px 14px calc(78px + env(safe-area-inset-bottom)) !important;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+  .kb-search {
+    display: none !important;
+  }
+  .kb-mobsearch {
+    display: flex !important;
+  }
+  .kb-header {
+    padding: calc(6px + env(safe-area-inset-top)) 16px 0 !important;
+    gap: 10px !important;
+    height: calc(58px + env(safe-area-inset-top)) !important;
+    align-items: center !important;
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    border-bottom: none !important;
+  }
+  .kb-htitle {
+    font-size: 21px !important;
+    letter-spacing: -0.03em !important;
+  }
+  .kb-hsub {
+    display: none !important;
+  }
+  .kb-drawer {
+    width: 100vw !important;
+    box-shadow: none !important;
+    padding-top: env(safe-area-inset-top);
+  }
+  .kb-resp {
+    grid-template-columns: 1fr !important;
+  }
+  .kb-hero {
+    font-size: 34px !important;
+  }
+  .kb-herocard {
+    padding: 22px !important;
+    border-radius: 22px !important;
+  }
+  .kb-pmenu {
+    right: 14px !important;
+    top: calc(56px + env(safe-area-inset-top)) !important;
+  }
+  .kb-modalwrap {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+  .kb-sheet {
+    max-width: 100% !important;
+    border-radius: 26px 26px 0 0 !important;
+    animation: sheetUp 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both !important;
+    padding-bottom: env(safe-area-inset-bottom) !important;
+    max-height: 88vh;
+    overflow-y: auto;
+  }
+  .kb-grab {
+    display: block !important;
+  }
+  .kb-tap {
+    min-height: 48px;
+  }
+  .kb-hidem {
+    display: none !important;
+  }
+  .kb-installbar {
+    display: flex !important;
+  }
+  .kb-spark {
+    display: none !important;
+  }
+  .kb-dashbar {
+    display: block !important;
+    margin-bottom: 14px !important;
+  }
+  .kb-dashlabel {
+    display: none !important;
+  }
+  .kb-seg {
+    width: 100% !important;
+    gap: 0 !important;
+    padding: 3px !important;
+    background: #fff !important;
+    border: 1px solid #e6e6eb !important;
+    border-radius: 12px !important;
+  }
+  .kb-segbtn {
+    flex: 1 !important;
+    height: 36px !important;
+    padding: 0 8px !important;
+    border-radius: 10px !important;
+    font-size: 13.5px !important;
+  }
+  a,
+  button,
+  [onclick] {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  *:not(input):not(textarea) {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
