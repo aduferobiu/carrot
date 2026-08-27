@@ -84,7 +84,7 @@ export function AccountsPage() {
                 </span>
               </div>
               <div style={{ fontSize: 12.5, color: "#8A8A98", marginTop: 4, fontFamily: "ui-monospace,monospace" }}>
-                {a.type} · {a.masked_number}
+                {a.institution_name || a.type} · {a.masked_number}
               </div>
             </div>
             <div style={{ textAlign: "right", marginRight: 6 }}>

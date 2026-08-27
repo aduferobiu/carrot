@@ -200,10 +200,6 @@ export function cashflowBars(data: { m: string; cred: number; deb: number }[]) {
   }));
 }
 
-export function trendBars(data: { m: string; cred: number; deb: number }[]) {
-  const max = Math.max(...data.map((c) => Math.max(c.cred, c.deb))) || 1;
-  return data.map((c) => ({ m: c.m, h: Math.round((c.deb / max) * 120) + "px", fmt: naira(c.deb) }));
-}
 
 const FREQUENCY_LABEL: Record<Subscription["frequency"], string> = {
   weekly: "Weekly",

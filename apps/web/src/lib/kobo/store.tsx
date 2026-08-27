@@ -42,6 +42,7 @@ type KoboState = {
   budgetCat: string;
   budgetAmt: string;
   healthModalOpen: boolean;
+  categoryPickerTxId: string | null;
   reauthOpen: boolean;
   reauthAction: ReauthAction;
   reauthPayload: string | null;
@@ -71,6 +72,7 @@ const initialState: KoboState = {
   budgetCat: "",
   budgetAmt: "",
   healthModalOpen: false,
+  categoryPickerTxId: null,
   reauthOpen: false,
   reauthAction: null,
   reauthPayload: null,
@@ -103,6 +105,8 @@ type KoboContextValue = KoboState & {
   restoreSubscription: (id: string) => void;
   flagAsSubscription: (txId: string) => void;
   toggleHealthModal: () => void;
+  openCategoryPicker: (txId: string) => void;
+  closeCategoryPicker: () => void;
   openReauth: (action: ReauthAction, payload?: string) => void;
   closeReauth: () => void;
   confirmReauth: () => void;
@@ -407,6 +411,8 @@ export function KoboProvider({ children }: { children: React.ReactNode }) {
   }, [showToast, state.session]);
 
   const toggleHealthModal = useCallback(() => setState((s) => ({ ...s, healthModalOpen: !s.healthModalOpen })), []);
+  const openCategoryPicker = useCallback((txId: string) => patch({ categoryPickerTxId: txId }), [patch]);
+  const closeCategoryPicker = useCallback(() => patch({ categoryPickerTxId: null }), [patch]);
 
   const openReauth = useCallback((action: ReauthAction, payload?: string) => {
     patch({ reauthOpen: true, reauthAction: action, reauthPayload: payload ?? null, profileMenu: false });
@@ -506,6 +512,8 @@ export function KoboProvider({ children }: { children: React.ReactNode }) {
       restoreSubscription,
       flagAsSubscription,
       toggleHealthModal,
+      openCategoryPicker,
+      closeCategoryPicker,
       openReauth,
       closeReauth,
       confirmReauth,
@@ -539,6 +547,8 @@ export function KoboProvider({ children }: { children: React.ReactNode }) {
       restoreSubscription,
       flagAsSubscription,
       toggleHealthModal,
+      openCategoryPicker,
+      closeCategoryPicker,
       openReauth,
       closeReauth,
       confirmReauth,

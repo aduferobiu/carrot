@@ -10,6 +10,7 @@ import { NotificationsDrawer } from "./NotificationsDrawer";
 import { ProfileMenu } from "./ProfileMenu";
 import { LinkAccountModal } from "./LinkAccountModal";
 import { BudgetModal } from "./BudgetModal";
+import { CategoryPickerModal } from "./CategoryPickerModal";
 import { HealthScoreModal } from "./HealthScoreModal";
 import { ReauthModal } from "./ReauthModal";
 
@@ -412,6 +413,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <LinkAccountModal />
       <BudgetModal />
       <HealthScoreModal />
+      <CategoryPickerModal />
       <ReauthModal />
     </div>
   );

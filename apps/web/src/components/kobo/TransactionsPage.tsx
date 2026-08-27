@@ -7,7 +7,7 @@ import { filteredTx, groupByDate, txView } from "@/lib/kobo/selectors";
 import { useKobo } from "@/lib/kobo/store";
 
 export function TransactionsPage() {
-  const { accounts, transactions, categories, txSearch, setTxSearch, correctCat, flagAsSubscription } = useKobo();
+  const { accounts, transactions, categories, txSearch, setTxSearch, openCategoryPicker, flagAsSubscription } = useKobo();
   const [txAcc, setTxAcc] = useState("all");
   const [txCat, setTxCat] = useState("all");
   const [editTxId, setEditTxId] = useState<string | null>(null);
@@ -146,7 +146,11 @@ export function TransactionsPage() {
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
                       <div style={{ fontWeight: 800, fontSize: 14.5, color: row.amountColor }}>{row.amountFmt}</div>
-                      <div
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openCategoryPicker(t.id);
+                        }}
                         style={{
                           display: "flex",
                           alignItems: "center",
@@ -157,48 +161,17 @@ export function TransactionsPage() {
                           borderRadius: 8,
                           fontSize: 11.5,
                           fontWeight: 700,
+                          border: "none",
+                          cursor: "pointer",
+                          fontFamily: "inherit",
                         }}
                       >
                         {row.catName} <Icon name="chevD" size={12} strokeWidth={2.2} />
-                      </div>
+                      </button>
                     </div>
                   </div>
                   {editing && (
                     <div style={{ padding: "4px 16px 16px", background: "#FAFAFC" }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A98", margin: "8px 0 10px" }}>
-                        Change category — Carrot learns from your correction
-                      </div>
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        {leafCategories.map((c) => (
-                          <button
-                            key={c.id}
-                            onClick={() => {
-                              correctCat(t.id, c.id);
-                              setEditTxId(null);
-                            }}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 7,
-                              height: 34,
-                              padding: "0 12px",
-                              border: "1px solid #E6E6EB",
-                              borderRadius: 10,
-                              background: "#fff",
-                              fontFamily: "inherit",
-                              fontWeight: 600,
-                              fontSize: 12.5,
-                              cursor: "pointer",
-                              color: "#3A3A47",
-                            }}
-                          >
-                            <span style={{ color: c.color }}>
-                              <Icon name={c.icon} size={15} />
-                            </span>
-                            {c.name}
-                          </button>
-                        ))}
-                      </div>
                       {t.type === "expense" && (
                         <button
                           onClick={() => {
