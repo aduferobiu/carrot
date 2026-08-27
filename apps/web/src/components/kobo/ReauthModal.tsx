@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Icon } from "@/lib/kobo/icons";
 import { useKobo } from "@/lib/kobo/store";
 
@@ -19,6 +20,7 @@ const LABELS: Record<string, [string, string, string]> = {
 
 export function ReauthModal() {
   const { reauthOpen, reauthAction, closeReauth, confirmReauth } = useKobo();
+  const [showPassword, setShowPassword] = useState(false);
   if (!reauthOpen) return null;
 
   const [title, desc, cta] = (reauthAction && LABELS[reauthAction]) || ["", "", ""];
@@ -86,7 +88,7 @@ export function ReauthModal() {
         >
           <Icon name="lock" size={16} />
           <input
-            type="password"
+            type={showPassword ? "text" : "password"}
             defaultValue="Naira2026Save"
             style={{
               flex: 1,
@@ -98,6 +100,22 @@ export function ReauthModal() {
               color: "#15171C",
             }}
           />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              background: "transparent",
+              border: "none",
+              padding: 0,
+              color: "#8A8A98",
+              cursor: "pointer",
+            }}
+          >
+            <Icon name={showPassword ? "eyeOff" : "eye"} size={17} />
+          </button>
         </div>
         <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
           <button

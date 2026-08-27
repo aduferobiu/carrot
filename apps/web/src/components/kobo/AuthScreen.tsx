@@ -123,6 +123,7 @@ export function AuthScreen() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [consent, setConsent] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -268,10 +269,26 @@ export function AuthScreen() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     onBlur={() => setTouched((t) => ({ ...t, password: true }))}
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
                     style={inputStyle}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      background: "transparent",
+                      border: "none",
+                      padding: 0,
+                      color: "#8A8A98",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <Icon name={showPassword ? "eyeOff" : "eye"} size={17} />
+                  </button>
                 </div>
                 {touched.password && errors.password && <div style={errorTextStyle}>{errors.password}</div>}
               </div>
