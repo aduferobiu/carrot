@@ -73,23 +73,24 @@ function HealthScoreCard({ healthScore, onClick }: { healthScore: HealthScore | 
           <Icon name="shield" size={18} />
         </span>
       </div>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-        <div style={{ fontSize: 40, fontWeight: 800, letterSpacing: "-.02em" }}>{healthScore.score}</div>
-        <div style={{ fontSize: 13, color: "#8A8A98", fontWeight: 600 }}>/ 100</div>
-      </div>
-      <div
-        style={{
-          display: "inline-flex",
-          marginTop: 10,
-          padding: "5px 11px",
-          borderRadius: 9,
-          fontSize: 12.5,
-          fontWeight: 700,
-          background: rgba(color, 0.12),
-          color,
-        }}
-      >
-        {healthScore.band}
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+          <div style={{ fontSize: 40, fontWeight: 800, letterSpacing: "-.02em" }}>{healthScore.score}</div>
+          <div style={{ fontSize: 13, color: "#8A8A98", fontWeight: 600 }}>/ 100</div>
+        </div>
+        <div
+          style={{
+            display: "inline-flex",
+            padding: "5px 11px",
+            borderRadius: 9,
+            fontSize: 12.5,
+            fontWeight: 700,
+            background: rgba(color, 0.12),
+            color,
+          }}
+        >
+          {healthScore.band}
+        </div>
       </div>
       <div style={{ fontSize: 12, color: "#8A8A98", marginTop: 10 }}>Tap to see the breakdown</div>
     </div>
@@ -113,6 +114,7 @@ export function DashboardPage() {
   } = useKobo();
   const [dashLayout, setDashLayout] = useState<Layout>("overview");
   const [refreshing, setRefreshing] = useState(false);
+  const [showBalance, setShowBalance] = useState(true);
 
   async function handleRefresh() {
     if (refreshing) return;
@@ -285,7 +287,7 @@ export function DashboardPage() {
                 background: "linear-gradient(135deg,#14141E 0%,#1E1C3A 52%,#2E2768 100%)",
                 borderRadius: 24,
                 padding: "28px 28px 28px 40px",
-                minHeight: 214,
+                minHeight: 180,
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "center",
@@ -309,9 +311,26 @@ export function DashboardPage() {
               <div style={{ position: "relative" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
                   <div>
-                    <div style={{ fontSize: 13, color: "#B7B7D4", fontWeight: 600 }}>Total balance · {monthLabel(monthStart)}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ fontSize: 13, color: "#B7B7D4", fontWeight: 600 }}>Total balance · {monthLabel(monthStart)}</div>
+                      <button
+                        onClick={() => setShowBalance((v) => !v)}
+                        aria-label={showBalance ? "Hide balance" : "Show balance"}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          background: "transparent",
+                          border: "none",
+                          padding: 0,
+                          color: "#B7B7D4",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <Icon name={showBalance ? "eye" : "eyeOff"} size={15} />
+                      </button>
+                    </div>
                     <div className="kb-hero" style={{ fontSize: 44, fontWeight: 800, letterSpacing: "-.025em", marginTop: 7, lineHeight: 1 }}>
-                      {naira(total)}
+                      {showBalance ? naira(total) : "₦ • • • • • •"}
                     </div>
                     <div
                       style={{
@@ -509,7 +528,7 @@ export function DashboardPage() {
               }}
             />
             <div style={{ position: "relative" }}>
-              <div style={{ fontSize: 13, color: "#B7B7D4", fontWeight: 600, textAlign: "center" }}>Spending trend</div>
+              <div style={{ fontSize: 15.5, fontWeight: 800 }}>Spending trend</div>
 
               <div style={{ display: "flex", justifyContent: "center", margin: "18px 0" }}>
                 <div style={{ position: "relative", width: 128, height: 128, flexShrink: 0 }}>
