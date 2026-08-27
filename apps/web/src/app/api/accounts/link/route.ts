@@ -4,6 +4,25 @@ import { exchangeMonoCode, getMonoAccount, MonoApiError } from "@/server/mono";
 import { supabase } from "@/server/supabase";
 import { syncTransactions } from "@/server/accountSync";
 
+function nameTokens(name: string): string[] {
+  return name
+    .toUpperCase()
+    .replace(/[^A-Z\s]/g, "")
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
+/** Every word in the Carrot profile name must appear somewhere in the bank
+ * account's name — order-independent (banks format names in different
+ * orders, e.g. "SURNAME FIRST MIDDLE" vs "FIRST MIDDLE SURNAME"), but not
+ * substring-fuzzy, so it still blocks linking someone else's account. */
+function ownerNameMatches(carrotName: string, bankName: string): boolean {
+  const carrotTokens = nameTokens(carrotName);
+  if (carrotTokens.length === 0) return false;
+  const bankTokens = new Set(nameTokens(bankName));
+  return carrotTokens.every((t) => bankTokens.has(t));
+}
+
 export async function POST(req: NextRequest) {
   const userId = await requireAuth(req);
   if (userId instanceof NextResponse) return userId;
@@ -18,6 +37,19 @@ export async function POST(req: NextRequest) {
     const details = await getMonoAccount(monoAccountId);
     const account = details.data.account;
     const masked = account.account_number ? "****" + account.account_number.slice(-4) : null;
+
+    if (account.name) {
+      const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", userId).maybeSingle();
+      const carrotName = profile?.full_name ?? "";
+      if (carrotName && !ownerNameMatches(carrotName, account.name)) {
+        return NextResponse.json(
+          {
+            error: `This account is registered to "${account.name}", which doesn't match your Carrot profile name. You can only link accounts held in your own name.`,
+          },
+          { status: 400 },
+        );
+      }
+    }
 
     const { data, error } = await supabase
       .from("accounts")

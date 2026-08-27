@@ -3,11 +3,11 @@
 import { useRouter } from "next/navigation";
 import { ChartBar } from "@/components/kobo/ChartBar";
 import { Icon } from "@/lib/kobo/icons";
-import { cashflowData } from "@/lib/kobo/data";
 import { naira } from "@/lib/kobo/format";
 import {
   cashflowBars,
   donutGradient,
+  monthlyCashflow,
   monthlyRecurringTotal,
   spendByCat,
   subscriptionsView,
@@ -15,42 +15,57 @@ import {
 } from "@/lib/kobo/selectors";
 import { useKobo } from "@/lib/kobo/store";
 
+function EmptyState({ icon, text }: { icon: string; text: string }) {
+  return (
+    <div style={{ padding: "26px 14px", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, color: "#C4C4CE" }}>
+      <Icon name={icon} size={22} />
+      <div style={{ fontSize: 13, color: "#8A8A98", fontWeight: 600, textAlign: "center" }}>{text}</div>
+    </div>
+  );
+}
+
 export function InsightsPage() {
   const router = useRouter();
   const { transactions, categories, subscriptions } = useKobo();
   const spend = spendByCat(transactions, categories);
   const topCats = topCategories(spend, categories);
   const totSpend = Object.values(spend).reduce((a, b) => a + b, 0);
+  const cashflowData = monthlyCashflow(transactions);
+  const hasCashflow = cashflowData.some((c) => c.cred > 0 || c.deb > 0);
   const cashflow = cashflowBars(cashflowData);
   const recurring = subscriptionsView(subscriptions, categories);
   const recurTotal = monthlyRecurringTotal(subscriptions);
 
+  const topTiles = topCats.slice(0, 3);
+
   return (
     <div style={{ maxWidth: 1080, margin: "0 auto", animation: "fadeUp .4s ease both" }}>
-      <div className="kb-resp" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 20 }}>
-        {topCats.slice(0, 3).map((c) => (
-          <div key={c.id} style={{ background: "#fff", border: "1px solid #E6E6EB", borderRadius: 18, padding: 18, display: "flex", alignItems: "center", gap: 13 }}>
-            <div
-              style={{
-                width: 46,
-                height: 46,
-                borderRadius: 14,
-                background: c.color,
-                color: "#fff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Icon name={c.icon} size={20} />
+      {topTiles.length > 0 && (
+        <div className="kb-resp" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 20 }}>
+          {topTiles.map((c) => (
+            <div key={c.id} style={{ background: "#fff", border: "1px solid #E6E6EB", borderRadius: 18, padding: 18, display: "flex", alignItems: "center", gap: 13 }}>
+              <div
+                style={{
+                  width: 46,
+                  height: 46,
+                  borderRadius: 14,
+                  background: c.color,
+                  color: "#fff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Icon name={c.icon} size={20} />
+              </div>
+              <div>
+                <div style={{ fontSize: 12.5, color: "#8A8A98", fontWeight: 600 }}>{c.name}</div>
+                <div style={{ fontSize: 19, fontWeight: 800, marginTop: 2 }}>{c.fmt}</div>
+              </div>
             </div>
-            <div>
-              <div style={{ fontSize: 12.5, color: "#8A8A98", fontWeight: 600 }}>{c.name}</div>
-              <div style={{ fontSize: 19, fontWeight: 800, marginTop: 2 }}>{c.fmt}</div>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       <div className="kb-resp" style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 20 }}>
         <div style={{ background: "#fff", border: "1px solid #E6E6EB", borderRadius: 22, padding: 24 }}>
@@ -68,17 +83,24 @@ export function InsightsPage() {
               </div>
             </div>
           </div>
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 16, height: 200 }}>
-            {cashflow.map((c) => (
-              <div key={c.m} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 9 }}>
-                <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 170 }}>
-                  <ChartBar height={c.credH} color="linear-gradient(#19D88A,#12B76A)" label={`In: ${c.credFmt}`} width={17} />
-                  <ChartBar height={c.debH} color="linear-gradient(#FB5572,#E11D48)" label={`Out: ${c.debFmt}`} width={17} />
+          {hasCashflow ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 16, height: 200 }}>
+              {cashflow.map((c) => (
+                <div key={c.m} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 9 }}>
+                  <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 170 }}>
+                    <ChartBar height={c.credH} color="linear-gradient(#19D88A,#12B76A)" label={`In: ${c.credFmt}`} width={17} />
+                    <ChartBar height={c.debH} color="linear-gradient(#FB5572,#E11D48)" label={`Out: ${c.debFmt}`} width={17} />
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A98" }}>{c.m}</div>
                 </div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#8A8A98" }}>{c.m}</div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ height: 200, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, color: "#C4C4CE" }}>
+              <Icon name="chart" size={26} />
+              <div style={{ fontSize: 13, color: "#8A8A98", fontWeight: 600 }}>No transaction history yet</div>
+            </div>
+          )}
         </div>
 
         <div style={{ background: "#fff", border: "1px solid #E6E6EB", borderRadius: 22, padding: 24 }}>
@@ -104,15 +126,19 @@ export function InsightsPage() {
               </div>
             </div>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-            {topCats.map((c) => (
-              <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                <span style={{ width: 10, height: 10, borderRadius: 3, background: c.color, flexShrink: 0 }} />
-                <span style={{ fontSize: 12.5, fontWeight: 600, flex: 1 }}>{c.name}</span>
-                <span style={{ fontSize: 12.5, fontWeight: 800, color: "#8A8A98" }}>{c.pct}%</span>
-              </div>
-            ))}
-          </div>
+          {topCats.length === 0 ? (
+            <div style={{ fontSize: 12.5, color: "#8A8A98", textAlign: "center" }}>No spending yet this month</div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
+              {topCats.map((c) => (
+                <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                  <span style={{ width: 10, height: 10, borderRadius: 3, background: c.color, flexShrink: 0 }} />
+                  <span style={{ fontSize: 12.5, fontWeight: 600, flex: 1 }}>{c.name}</span>
+                  <span style={{ fontSize: 12.5, fontWeight: 800, color: "#8A8A98" }}>{c.pct}%</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div style={{ gridColumn: "1 / -1", background: "#fff", border: "1px solid #E6E6EB", borderRadius: 22, padding: "8px 8px 14px" }}>

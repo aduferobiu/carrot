@@ -78,6 +78,12 @@ export function BudgetsPage() {
           </button>
         </div>
       </div>
+      {views.length === 0 && (
+        <div style={{ background: "#fff", border: "1px solid #E6E6EB", borderRadius: 20, padding: 32, textAlign: "center" }}>
+          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6 }}>No budgets yet</div>
+          <div style={{ fontSize: 13, color: "#8A8A98" }}>Create one above to start tracking spend against a limit.</div>
+        </div>
+      )}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(300px,1fr))", gap: 16 }}>
         {views.map((b) => (
           <div key={b.id} style={{ background: "#fff", border: "1px solid #E6E6EB", borderRadius: 20, padding: 20 }}>

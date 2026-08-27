@@ -4,12 +4,13 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ChartBar } from "@/components/kobo/ChartBar";
 import { Icon } from "@/lib/kobo/icons";
-import { accountCode, accountGradient, cashflowData, HealthScore } from "@/lib/kobo/data";
+import { accountCode, accountGradient, HealthScore } from "@/lib/kobo/data";
 import { currentMonthStart, monthLabel, naira, rgba } from "@/lib/kobo/format";
 import {
   budgetsView,
   cashflowBars,
   donutGradient,
+  monthlyCashflow,
   monthlyRecurringTotal,
   monthTotals,
   sortedTx,
@@ -40,6 +41,15 @@ function bandColor(band: string): string {
     default:
       return "#EF4444";
   }
+}
+
+function EmptyState({ icon, text }: { icon: string; text: string }) {
+  return (
+    <div style={{ padding: "26px 14px", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, color: "#C4C4CE" }}>
+      <Icon name={icon} size={22} />
+      <div style={{ fontSize: 13, color: "#8A8A98", fontWeight: 600, textAlign: "center" }}>{text}</div>
+    </div>
+  );
 }
 
 function HealthScoreCard({ healthScore, onClick }: { healthScore: HealthScore | null; onClick: () => void }) {
@@ -131,8 +141,10 @@ export function DashboardPage() {
     ...a,
     code: accountCode(a),
     grad: accountGradient(a),
-    pct: Math.round((a.balance / total) * 100) + "%",
+    pct: total > 0 ? Math.round((a.balance / total) * 100) + "%" : "0%",
   }));
+  const cashflowData = monthlyCashflow(transactions);
+  const hasCashflow = cashflowData.some((c) => c.cred > 0 || c.deb > 0);
   const cashflow = cashflowBars(cashflowData);
   const trend = trendBars(cashflowData);
   const recurring = subscriptionsView(subscriptions, categories);
@@ -142,12 +154,12 @@ export function DashboardPage() {
   const trendTotalOut = cashflowData.reduce((a, c) => a + c.deb, 0);
   let trendAcc = 0;
   const trendSegs = cashflowData.map((c, i) => {
-    const start = (trendAcc / trendTotalOut) * 100;
+    const start = trendTotalOut > 0 ? (trendAcc / trendTotalOut) * 100 : 0;
     trendAcc += c.deb;
-    const end = (trendAcc / trendTotalOut) * 100;
+    const end = trendTotalOut > 0 ? (trendAcc / trendTotalOut) * 100 : 0;
     return `${TREND_COLORS[i % TREND_COLORS.length]} ${start.toFixed(1)}% ${end.toFixed(1)}%`;
   });
-  const trendDonut = `conic-gradient(${trendSegs.join(",")})`;
+  const trendDonut = trendTotalOut > 0 ? `conic-gradient(${trendSegs.join(",")})` : "#2A2960";
   const trendPeak = cashflowData.reduce((a, c) => (c.deb > a.deb ? c : a), cashflowData[0]);
 
   return (
@@ -235,6 +247,28 @@ export function DashboardPage() {
         </div>
         <div style={{ flex: 1 }} />
         <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          title="Refresh"
+          style={{
+            width: 40,
+            height: 40,
+            border: "1px solid #E6E6EB",
+            borderRadius: 12,
+            background: "#fff",
+            color: "#4A4A57",
+            cursor: refreshing ? "default" : "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          <span style={{ display: "flex", animation: refreshing ? "spin .8s linear infinite" : "none" }}>
+            <Icon name="refresh" size={16} />
+          </span>
+        </button>
+        <button
           onClick={openLink}
           style={{
             height: 40,
@@ -266,6 +300,10 @@ export function DashboardPage() {
                 background: "linear-gradient(135deg,#14141E 0%,#1E1C3A 52%,#2E2768 100%)",
                 borderRadius: 24,
                 padding: 28,
+                minHeight: 214,
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
                 color: "#fff",
                 position: "relative",
                 overflow: "hidden",
@@ -308,89 +346,6 @@ export function DashboardPage() {
                       <Icon name="upRight" size={15} strokeWidth={2.2} /> {deltaFmt} net this month
                     </div>
                   </div>
-                  <button
-                    onClick={handleRefresh}
-                    disabled={refreshing}
-                    style={{
-                      width: 36,
-                      height: 36,
-                      border: "1px solid rgba(255,255,255,.14)",
-                      borderRadius: 10,
-                      background: "rgba(255,255,255,.07)",
-                      color: "#fff",
-                      cursor: refreshing ? "default" : "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                    }}
-                  >
-                    <span
-                      style={{
-                        display: "flex",
-                        animation: refreshing ? "spin .8s linear infinite" : "none",
-                      }}
-                    >
-                      <Icon name="refresh" size={16} />
-                    </span>
-                  </button>
-                </div>
-                <div style={{ display: "flex", gap: 10, marginTop: 24, flexWrap: "wrap" }}>
-                  {accounts.map((a) => (
-                    <div
-                      key={a.id}
-                      onClick={() => router.push("/accounts")}
-                      style={{
-                        flex: 1,
-                        minWidth: 120,
-                        background: "rgba(255,255,255,.07)",
-                        border: "1px solid rgba(255,255,255,.09)",
-                        borderRadius: 14,
-                        padding: 13,
-                        cursor: "pointer",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: 24,
-                          height: 24,
-                          borderRadius: 7,
-                          background: accountGradient(a),
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: "#fff",
-                          fontSize: 9,
-                          fontWeight: 800,
-                        }}
-                      >
-                        {accountCode(a)}
-                      </div>
-                      <div style={{ fontSize: 16, fontWeight: 800, marginTop: 9, letterSpacing: "-.01em" }}>{naira(a.balance)}</div>
-                    </div>
-                  ))}
-                  <div
-                    onClick={openLink}
-                    style={{
-                      flex: 1,
-                      minWidth: 120,
-                      background: "rgba(255,255,255,.03)",
-                      border: "1px dashed rgba(255,255,255,.22)",
-                      borderRadius: 14,
-                      padding: 13,
-                      cursor: "pointer",
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 6,
-                      color: "#C7C7DE",
-                      minHeight: 74,
-                    }}
-                  >
-                    <Icon name="plus" size={16} strokeWidth={2.2} />
-                    <div style={{ fontSize: 11.5, fontWeight: 700 }}>Link account</div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -402,32 +357,36 @@ export function DashboardPage() {
                   See all
                 </span>
               </div>
-              {recentTx.map((t) => (
-                <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 13, padding: "11px 14px", borderRadius: 14 }}>
-                  <div
-                    style={{
-                      width: 42,
-                      height: 42,
-                      borderRadius: 13,
-                      background: t.iconBg,
-                      color: t.iconColor,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Icon name={t.icon} size={19} />
-                  </div>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                      {t.title}
+              {recentTx.length === 0 ? (
+                <EmptyState icon="list" text="No transactions yet" />
+              ) : (
+                recentTx.map((t) => (
+                  <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 13, padding: "11px 14px", borderRadius: 14 }}>
+                    <div
+                      style={{
+                        width: 42,
+                        height: 42,
+                        borderRadius: 13,
+                        background: t.iconBg,
+                        color: t.iconColor,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Icon name={t.icon} size={19} />
                     </div>
-                    <div style={{ fontSize: 12, color: "#8A8A98", marginTop: 2 }}>{t.sub}</div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {t.title}
+                      </div>
+                      <div style={{ fontSize: 12, color: "#8A8A98", marginTop: 2 }}>{t.sub}</div>
+                    </div>
+                    <div style={{ fontWeight: 800, fontSize: 14, color: t.amountColor, whiteSpace: "nowrap" }}>{t.amountFmt}</div>
                   </div>
-                  <div style={{ fontWeight: 800, fontSize: 14, color: t.amountColor, whiteSpace: "nowrap" }}>{t.amountFmt}</div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
 
@@ -459,13 +418,17 @@ export function DashboardPage() {
                   </div>
                 </div>
                 <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 11 }}>
-                  {topCats.slice(0, 3).map((c) => (
-                    <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                      <span style={{ width: 10, height: 10, borderRadius: 3, background: c.color, flexShrink: 0 }} />
-                      <span style={{ fontSize: 13, fontWeight: 600, flex: 1 }}>{c.name}</span>
-                      <span style={{ fontSize: 13, fontWeight: 800 }}>{c.pct}%</span>
-                    </div>
-                  ))}
+                  {topCats.length === 0 ? (
+                    <div style={{ fontSize: 12.5, color: "#8A8A98" }}>No spending yet this month</div>
+                  ) : (
+                    topCats.slice(0, 3).map((c) => (
+                      <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                        <span style={{ width: 10, height: 10, borderRadius: 3, background: c.color, flexShrink: 0 }} />
+                        <span style={{ fontSize: 13, fontWeight: 600, flex: 1 }}>{c.name}</span>
+                        <span style={{ fontSize: 13, fontWeight: 800 }}>{c.pct}%</span>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             </div>
@@ -477,21 +440,25 @@ export function DashboardPage() {
                   Manage
                 </span>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                {budgetsTop.map((b) => (
-                  <div key={b.id}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 7 }}>
-                      <div style={{ fontSize: 13.5, fontWeight: 700 }}>{b.catName}</div>
-                      <div style={{ fontSize: 12.5, color: "#8A8A98", fontWeight: 600 }}>
-                        {b.spentFmt} / {b.amtFmt}
+              {budgetsTop.length === 0 ? (
+                <EmptyState icon="target" text="No budgets yet — tap Manage to create one" />
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  {budgetsTop.map((b) => (
+                    <div key={b.id}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 7 }}>
+                        <div style={{ fontSize: 13.5, fontWeight: 700 }}>{b.catName}</div>
+                        <div style={{ fontSize: 12.5, color: "#8A8A98", fontWeight: 600 }}>
+                          {b.spentFmt} / {b.amtFmt}
+                        </div>
+                      </div>
+                      <div style={{ height: 8, borderRadius: 6, background: "#EFEFF3", overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: b.barW, background: b.barColor, borderRadius: 6 }} />
                       </div>
                     </div>
-                    <div style={{ height: 8, borderRadius: 6, background: "#EFEFF3", overflow: "hidden" }}>
-                      <div style={{ height: "100%", width: b.barW, background: b.barColor, borderRadius: 6 }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -569,32 +536,36 @@ export function DashboardPage() {
                   See all
                 </span>
               </div>
-              {recentTx.map((t) => (
-                <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 13, padding: "11px 14px", borderRadius: 14 }}>
-                  <div
-                    style={{
-                      width: 42,
-                      height: 42,
-                      borderRadius: 13,
-                      background: t.iconBg,
-                      color: t.iconColor,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Icon name={t.icon} size={19} />
-                  </div>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                      {t.title}
+              {recentTx.length === 0 ? (
+                <EmptyState icon="list" text="No transactions yet" />
+              ) : (
+                recentTx.map((t) => (
+                  <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 13, padding: "11px 14px", borderRadius: 14 }}>
+                    <div
+                      style={{
+                        width: 42,
+                        height: 42,
+                        borderRadius: 13,
+                        background: t.iconBg,
+                        color: t.iconColor,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Icon name={t.icon} size={19} />
                     </div>
-                    <div style={{ fontSize: 12, color: "#8A8A98", marginTop: 2 }}>{t.sub}</div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {t.title}
+                      </div>
+                      <div style={{ fontSize: 12, color: "#8A8A98", marginTop: 2 }}>{t.sub}</div>
+                    </div>
+                    <div style={{ fontWeight: 800, fontSize: 14, color: t.amountColor, whiteSpace: "nowrap" }}>{t.amountFmt}</div>
                   </div>
-                  <div style={{ fontWeight: 800, fontSize: 14, color: t.amountColor, whiteSpace: "nowrap" }}>{t.amountFmt}</div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
               <div style={{ background: "#fff", border: "1px solid #E6E6EB", borderRadius: 22, padding: 22 }}>
@@ -625,24 +596,28 @@ export function DashboardPage() {
               </div>
               <div style={{ background: "#fff", border: "1px solid #E6E6EB", borderRadius: 22, padding: 22 }}>
                 <div style={{ fontSize: 15.5, fontWeight: 800, marginBottom: 16 }}>Top categories</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                  {topCats.slice(0, 3).map((c) => (
-                    <div key={c.id}>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 7 }}>
-                        <div style={{ fontSize: 13.5, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
-                          <span style={{ color: c.color }}>
-                            <Icon name={c.icon} size={18} />
-                          </span>
-                          {c.name}
+                {topCats.length === 0 ? (
+                  <EmptyState icon="grid" text="No spending yet this month" />
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                    {topCats.slice(0, 3).map((c) => (
+                      <div key={c.id}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 7 }}>
+                          <div style={{ fontSize: 13.5, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
+                            <span style={{ color: c.color }}>
+                              <Icon name={c.icon} size={18} />
+                            </span>
+                            {c.name}
+                          </div>
+                          <div style={{ fontSize: 13, fontWeight: 800 }}>{c.fmt}</div>
                         </div>
-                        <div style={{ fontSize: 13, fontWeight: 800 }}>{c.fmt}</div>
+                        <div style={{ height: 8, borderRadius: 6, background: "#EFEFF3", overflow: "hidden" }}>
+                          <div style={{ height: "100%", width: c.barW, background: c.color, borderRadius: 6 }} />
+                        </div>
                       </div>
-                      <div style={{ height: 8, borderRadius: 6, background: "#EFEFF3", overflow: "hidden" }}>
-                        <div style={{ height: "100%", width: c.barW, background: c.color, borderRadius: 6 }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -666,17 +641,24 @@ export function DashboardPage() {
                 </div>
               </div>
             </div>
-            <div style={{ display: "flex", alignItems: "flex-end", gap: 14, flex: 1, minHeight: 186, paddingTop: 6 }}>
-              {cashflow.map((c) => (
-                <div key={c.m} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-                  <div style={{ display: "flex", alignItems: "flex-end", gap: 5, height: 160 }}>
-                    <ChartBar height={c.credH} color="linear-gradient(#19D88A,#12B76A)" label={`In: ${c.credFmt}`} />
-                    <ChartBar height={c.debH} color="linear-gradient(#FB5572,#E11D48)" label={`Out: ${c.debFmt}`} />
+            {hasCashflow ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 14, flex: 1, minHeight: 186 }}>
+                {cashflow.map((c) => (
+                  <div key={c.m} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                    <div style={{ display: "flex", alignItems: "flex-end", gap: 5, height: 160 }}>
+                      <ChartBar height={c.credH} color="linear-gradient(#19D88A,#12B76A)" label={`In: ${c.credFmt}`} />
+                      <ChartBar height={c.debH} color="linear-gradient(#FB5572,#E11D48)" label={`Out: ${c.debFmt}`} />
+                    </div>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: "#8A8A98" }}>{c.m}</div>
                   </div>
-                  <div style={{ fontSize: 11.5, fontWeight: 700, color: "#8A8A98" }}>{c.m}</div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ flex: 1, minHeight: 186, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, color: "#C4C4CE" }}>
+                <Icon name="chart" size={26} />
+                <div style={{ fontSize: 13, color: "#8A8A98", fontWeight: 600 }}>No transaction history yet</div>
+              </div>
+            )}
           </div>
 
           <div
@@ -731,8 +713,8 @@ export function DashboardPage() {
                         justifyContent: "center",
                       }}
                     >
-                      <div style={{ fontSize: 9.5, color: "#9A9AB0", fontWeight: 600 }}>Peak</div>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: "#fff" }}>{trendPeak.m}</div>
+                      <div style={{ fontSize: 9.5, color: "#9A9AB0", fontWeight: 600 }}>{trendTotalOut > 0 ? "Peak" : ""}</div>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: "#fff" }}>{trendTotalOut > 0 ? trendPeak.m : "No spend"}</div>
                     </div>
                   </div>
                   <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
@@ -759,24 +741,28 @@ export function DashboardPage() {
 
           <div style={{ background: "#fff", border: "1px solid #E6E6EB", borderRadius: 22, padding: 24 }}>
             <div style={{ fontSize: 15.5, fontWeight: 800, marginBottom: 18 }}>Spending by category</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
-              {topCats.map((c) => (
-                <div key={c.id}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ color: c.color }}>
-                        <Icon name={c.icon} size={18} />
-                      </span>
-                      {c.name}
+            {topCats.length === 0 ? (
+              <EmptyState icon="grid" text="No spending yet this month" />
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
+                {topCats.map((c) => (
+                  <div key={c.id}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ color: c.color }}>
+                          <Icon name={c.icon} size={18} />
+                        </span>
+                        {c.name}
+                      </div>
+                      <div style={{ fontSize: 12.5, color: "#8A8A98", fontWeight: 700 }}>{c.fmt}</div>
                     </div>
-                    <div style={{ fontSize: 12.5, color: "#8A8A98", fontWeight: 700 }}>{c.fmt}</div>
+                    <div style={{ height: 7, borderRadius: 5, background: "#EFEFF3", overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: c.barW, background: c.color, borderRadius: 5 }} />
+                    </div>
                   </div>
-                  <div style={{ height: 7, borderRadius: 5, background: "#EFEFF3", overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: c.barW, background: c.color, borderRadius: 5 }} />
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div style={{ background: "#fff", border: "1px solid #E6E6EB", borderRadius: 22, padding: "8px 8px 14px" }}>

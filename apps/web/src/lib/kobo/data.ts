@@ -92,17 +92,6 @@ export type HealthScore =
       components: HealthScoreComponent[];
     };
 
-// Static reference data — not user data, so not fetched from Supabase.
-
-export const cashflowData = [
-  { m: "Jan", cred: 520000, deb: 410000 },
-  { m: "Feb", cred: 540000, deb: 455000 },
-  { m: "Mar", cred: 610000, deb: 470000 },
-  { m: "Apr", cred: 575000, deb: 520000 },
-  { m: "May", cred: 590000, deb: 498000 },
-  { m: "Jun", cred: 576450, deb: 489000 },
-];
-
 // Deterministic presentation values derived from an account, not stored in the DB.
 const ACCOUNT_GRADIENTS = [
   "linear-gradient(135deg,#F26B21,#C2410C)",

@@ -166,8 +166,31 @@ export function budgetsView(budgets: Budget[], transactions: Transaction[], cate
   });
 }
 
+const MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** Real credit/debit totals for the last 6 calendar months (oldest first),
+ * computed from actual transactions — replaces what used to be a hardcoded
+ * mock array feeding both the Cashflow chart and the Spending trend donut. */
+export function monthlyCashflow(transactions: Transaction[]): { m: string; cred: number; deb: number }[] {
+  const now = new Date();
+  const months: { key: string; m: string }[] = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push({ key: `${d.getFullYear()}-${d.getMonth()}`, m: MONTH_ABBR[d.getMonth()] });
+  }
+  const totals = new Map(months.map((mo) => [mo.key, { cred: 0, deb: 0 }]));
+  for (const t of transactions) {
+    const d = new Date(t.occurred_at);
+    const bucket = totals.get(`${d.getFullYear()}-${d.getMonth()}`);
+    if (!bucket) continue;
+    if (t.type === "income") bucket.cred += t.amount;
+    else if (t.type === "expense") bucket.deb += t.amount;
+  }
+  return months.map((mo) => ({ m: mo.m, ...totals.get(mo.key)! }));
+}
+
 export function cashflowBars(data: { m: string; cred: number; deb: number }[]) {
-  const max = Math.max(...data.map((c) => Math.max(c.cred, c.deb)));
+  const max = Math.max(...data.map((c) => Math.max(c.cred, c.deb))) || 1;
   return data.map((c) => ({
     m: c.m,
     credH: Math.round((c.cred / max) * 150) + "px",
@@ -178,7 +201,7 @@ export function cashflowBars(data: { m: string; cred: number; deb: number }[]) {
 }
 
 export function trendBars(data: { m: string; cred: number; deb: number }[]) {
-  const max = Math.max(...data.map((c) => Math.max(c.cred, c.deb)));
+  const max = Math.max(...data.map((c) => Math.max(c.cred, c.deb))) || 1;
   return data.map((c) => ({ m: c.m, h: Math.round((c.deb / max) * 120) + "px", fmt: naira(c.deb) }));
 }
 

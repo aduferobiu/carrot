@@ -43,7 +43,7 @@ export function TransactionsPage() {
       </div>
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-        {[{ id: "all", name: "All accounts" }, ...accounts].map((a) => {
+        {[{ id: "all", label: "All accounts" }, ...accounts.map((a) => ({ id: a.id, label: a.institution_name || a.name }))].map((a) => {
           const active = txAcc === a.id;
           return (
             <button
@@ -62,7 +62,7 @@ export function TransactionsPage() {
                 color: active ? "#fff" : "#4A4A57",
               }}
             >
-              {a.name}
+              {a.label}
             </button>
           );
         })}
@@ -96,6 +96,15 @@ export function TransactionsPage() {
       </div>
 
       <div style={{ fontSize: 13, color: "#8A8A98", fontWeight: 600, marginBottom: 10 }}>{filtered.length} transactions</div>
+
+      {filtered.length === 0 && (
+        <div style={{ background: "#fff", border: "1px solid #E6E6EB", borderRadius: 18, padding: 32, textAlign: "center" }}>
+          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6 }}>No transactions found</div>
+          <div style={{ fontSize: 13, color: "#8A8A98" }}>
+            {transactions.length === 0 ? "Link an account to start seeing activity here." : "Try a different filter or search term."}
+          </div>
+        </div>
+      )}
 
       {groups.map((g) => (
         <div key={g.label}>
