@@ -193,9 +193,8 @@ export function KoboProvider({ children }: { children: React.ReactNode }) {
       });
     });
     const token = state.session?.access_token;
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
     if (token) {
-      fetch(`${apiUrl}/insights/health-score`, { headers: { authorization: `Bearer ${token}` } })
+      fetch("/api/insights/health-score", { headers: { authorization: `Bearer ${token}` } })
         .then((res) => (res.ok ? res.json() : null))
         .then((body) => {
           if (mounted && body) patch({ healthScore: body as HealthScore });
@@ -234,7 +233,6 @@ export function KoboProvider({ children }: { children: React.ReactNode }) {
     }
     patch({ profileMenu: false });
     const token = state.session?.access_token;
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
     try {
       await openMonoConnect({
         customer: { name: state.profile.fullName, email: state.profile.email },
@@ -242,7 +240,7 @@ export function KoboProvider({ children }: { children: React.ReactNode }) {
         onSuccess: async (code) => {
           patch({ linking: true });
           try {
-            const res = await fetch(`${apiUrl}/accounts/link`, {
+            const res = await fetch("/api/accounts/link", {
               method: "POST",
               headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
               body: JSON.stringify({ code }),
@@ -331,9 +329,8 @@ export function KoboProvider({ children }: { children: React.ReactNode }) {
     }));
     const catName = state.categories.find((c) => c.id === catId)?.name ?? "";
     const token = state.session?.access_token;
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
     try {
-      const res = await fetch(`${apiUrl}/transactions/${txId}/category`, {
+      const res = await fetch(`/api/transactions/${txId}/category`, {
         method: "PATCH",
         headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
         body: JSON.stringify({ categoryId: catId }),
@@ -352,9 +349,8 @@ export function KoboProvider({ children }: { children: React.ReactNode }) {
       subscriptions: s.subscriptions.map((sub) => (sub.id === id ? { ...sub, status: "dismissed" as const } : sub)),
     }));
     const token = state.session?.access_token;
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
     try {
-      const res = await fetch(`${apiUrl}/subscriptions/${id}`, {
+      const res = await fetch(`/api/subscriptions/${id}`, {
         method: "PATCH",
         headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
         body: JSON.stringify({ status: "dismissed" }),
@@ -372,9 +368,8 @@ export function KoboProvider({ children }: { children: React.ReactNode }) {
       subscriptions: s.subscriptions.map((sub) => (sub.id === id ? { ...sub, status: "active" as const } : sub)),
     }));
     const token = state.session?.access_token;
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
     try {
-      const res = await fetch(`${apiUrl}/subscriptions/${id}`, {
+      const res = await fetch(`/api/subscriptions/${id}`, {
         method: "PATCH",
         headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
         body: JSON.stringify({ status: "active" }),
@@ -388,9 +383,8 @@ export function KoboProvider({ children }: { children: React.ReactNode }) {
 
   const flagAsSubscription = useCallback(async (txId: string) => {
     const token = state.session?.access_token;
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
     try {
-      const res = await fetch(`${apiUrl}/subscriptions/manual`, {
+      const res = await fetch("/api/subscriptions/manual", {
         method: "POST",
         headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
         body: JSON.stringify({ transactionId: txId }),
@@ -457,11 +451,10 @@ export function KoboProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     const token = state.session?.access_token;
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
     try {
       await Promise.all(
         linked.map((a) =>
-          fetch(`${apiUrl}/accounts/${a.id}/sync`, {
+          fetch(`/api/accounts/${a.id}/sync`, {
             method: "POST",
             headers: { authorization: `Bearer ${token}` },
           }),
@@ -471,7 +464,7 @@ export function KoboProvider({ children }: { children: React.ReactNode }) {
         supabase.from("accounts").select("*").order("created_at"),
         supabase.from("transactions").select("*").order("occurred_at", { ascending: false }),
         supabase.from("subscriptions").select("*"),
-        fetch(`${apiUrl}/insights/health-score`, { headers: { authorization: `Bearer ${token}` } }),
+        fetch("/api/insights/health-score", { headers: { authorization: `Bearer ${token}` } }),
       ]);
       const health = healthRes.ok ? ((await healthRes.json()) as HealthScore) : null;
       setState((s) => ({
