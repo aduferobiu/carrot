@@ -40,11 +40,11 @@ export function sortedTx(transactions: Transaction[]): Transaction[] {
 
 export function filteredTx(
   transactions: Transaction[],
-  filters: { acc: string; cat: string; search: string },
+  filters: { accs: string[]; cats: string[]; search: string },
 ): Transaction[] {
   let arr = sortedTx(transactions);
-  if (filters.acc !== "all") arr = arr.filter((t) => t.account_id === filters.acc);
-  if (filters.cat !== "all") arr = arr.filter((t) => t.category_id === filters.cat);
+  if (filters.accs.length > 0) arr = arr.filter((t) => filters.accs.includes(t.account_id));
+  if (filters.cats.length > 0) arr = arr.filter((t) => !!t.category_id && filters.cats.includes(t.category_id));
   const q = filters.search.trim().toLowerCase();
   if (q) {
     arr = arr.filter((t) =>

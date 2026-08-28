@@ -5,15 +5,44 @@ import { Icon } from "@/lib/kobo/icons";
 import { rgba } from "@/lib/kobo/format";
 import { filteredTx, groupByDate, txView } from "@/lib/kobo/selectors";
 import { useKobo } from "@/lib/kobo/store";
+import { TransactionFilterDrawer } from "@/components/kobo/TransactionFilterDrawer";
+
+function chipRemoveBtn(onClick: () => void) {
+  return (
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      style={{
+        width: 18,
+        height: 18,
+        border: "none",
+        background: "transparent",
+        borderRadius: "50%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        cursor: "pointer",
+        color: "inherit",
+        padding: 0,
+        flexShrink: 0,
+      }}
+    >
+      <Icon name="x" size={11} strokeWidth={2.6} />
+    </button>
+  );
+}
 
 export function TransactionsPage() {
   const { accounts, transactions, categories, txSearch, setTxSearch, openCategoryPicker, flagAsSubscription } = useKobo();
-  const [txAcc, setTxAcc] = useState("all");
-  const [txCat, setTxCat] = useState("all");
+  const [appliedAccs, setAppliedAccs] = useState<string[]>([]);
+  const [appliedCats, setAppliedCats] = useState<string[]>([]);
   const [editTxId, setEditTxId] = useState<string | null>(null);
-  const leafCategories = categories.filter((c) => c.parent_id);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const activeFilterCount = appliedAccs.length + appliedCats.length;
 
-  const filtered = filteredTx(transactions, { acc: txAcc, cat: txCat, search: txSearch });
+  const filtered = filteredTx(transactions, { accs: appliedAccs, cats: appliedCats, search: txSearch });
   const groups = groupByDate(filtered);
 
   return (
@@ -42,58 +71,126 @@ export function TransactionsPage() {
         />
       </div>
 
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-        {[{ id: "all", label: "All accounts" }, ...accounts.map((a) => ({ id: a.id, label: a.institution_name || a.name }))].map((a) => {
-          const active = txAcc === a.id;
-          return (
-            <button
-              key={a.id}
-              onClick={() => setTxAcc(a.id)}
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 14 }}>
+        <button
+          onClick={() => setFilterOpen(true)}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 7,
+            height: 36,
+            padding: "0 15px",
+            border: "1px solid #E6E6EB",
+            borderRadius: 11,
+            fontFamily: "inherit",
+            fontWeight: 700,
+            fontSize: 13,
+            cursor: "pointer",
+            background: "#fff",
+            color: "#15171C",
+            flexShrink: 0,
+          }}
+        >
+          <Icon name="filter" size={14} strokeWidth={2.2} />
+          Filters
+          {activeFilterCount > 0 && (
+            <span
               style={{
-                height: 36,
-                padding: "0 15px",
-                border: "1px solid #E6E6EB",
-                borderRadius: 11,
-                fontFamily: "inherit",
-                fontWeight: 700,
-                fontSize: 13,
-                cursor: "pointer",
-                background: active ? "#15171C" : "#fff",
-                color: active ? "#fff" : "#4A4A57",
+                minWidth: 18,
+                height: 18,
+                padding: "0 5px",
+                borderRadius: 9,
+                background: "#2C6BFF",
+                color: "#fff",
+                fontSize: 11,
+                fontWeight: 800,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
-              {a.label}
-            </button>
+              {activeFilterCount}
+            </span>
+          )}
+        </button>
+
+        {appliedAccs.map((id) => {
+          const a = accounts.find((x) => x.id === id);
+          if (!a) return null;
+          return (
+            <span
+              key={id}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                height: 32,
+                padding: "0 8px 0 13px",
+                borderRadius: 20,
+                fontSize: 12.5,
+                fontWeight: 600,
+                whiteSpace: "nowrap",
+                background: "#F2F2F5",
+                color: "#3A3A47",
+              }}
+            >
+              {a.institution_name || a.name}
+              {chipRemoveBtn(() => setAppliedAccs((prev) => prev.filter((x) => x !== id)))}
+            </span>
           );
         })}
-      </div>
 
-      <div style={{ display: "flex", gap: 7, overflowX: "auto", paddingBottom: 8, marginBottom: 14 }}>
-        {[{ id: "all", name: "All", color: "#15171C" }, ...leafCategories].map((c) => {
-          const active = txCat === c.id;
+        {appliedCats.map((id) => {
+          const c = categories.find((x) => x.id === id);
+          if (!c) return null;
           return (
-            <button
-              key={c.id}
-              onClick={() => setTxCat(c.id)}
+            <span
+              key={id}
               style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
                 height: 32,
-                padding: "0 13px",
-                border: `1px solid ${active ? c.color : "#E6E6EB"}`,
+                padding: "0 8px 0 13px",
                 borderRadius: 20,
-                fontFamily: "inherit",
-                fontWeight: 600,
                 fontSize: 12.5,
-                cursor: "pointer",
+                fontWeight: 600,
                 whiteSpace: "nowrap",
-                background: active ? rgba(c.color, 0.14) : "#fff",
-                color: active ? c.color : "#4A4A57",
+                background: rgba(c.color, 0.14),
+                color: c.color,
               }}
             >
               {c.name}
-            </button>
+              {chipRemoveBtn(() => setAppliedCats((prev) => prev.filter((x) => x !== id)))}
+            </span>
           );
         })}
+
+        {activeFilterCount > 0 && (
+          <span
+            onClick={() => {
+              setAppliedAccs([]);
+              setAppliedCats([]);
+            }}
+            style={{ fontSize: 12.5, fontWeight: 700, color: "#8A8A98", cursor: "pointer" }}
+          >
+            Clear all
+          </span>
+        )}
       </div>
+
+      <TransactionFilterDrawer
+        open={filterOpen}
+        onClose={() => setFilterOpen(false)}
+        accounts={accounts}
+        categories={categories}
+        appliedAccs={appliedAccs}
+        appliedCats={appliedCats}
+        onApply={(accs, cats) => {
+          setAppliedAccs(accs);
+          setAppliedCats(cats);
+        }}
+      />
 
       <div style={{ fontSize: 13, color: "#8A8A98", fontWeight: 600, marginBottom: 10 }}>{filtered.length} transactions</div>
 
