@@ -72,7 +72,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   if (authLoading || !session) {
     return (
-      <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#EBEBEF" }}>
+      <div className="kb-shell" style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#EBEBEF" }}>
         <div
           style={{
             width: 40,
@@ -88,7 +88,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div style={{ height: "100vh", display: "flex", background: "#EBEBEF" }}>
+    <div className="kb-shell" style={{ height: "100vh", display: "flex", background: "#EBEBEF" }}>
       <aside
         className="kb-sidebar"
         style={{

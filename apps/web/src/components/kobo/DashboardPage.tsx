@@ -6,6 +6,7 @@ import { ChartBar } from "@/components/kobo/ChartBar";
 import { Icon } from "@/lib/kobo/icons";
 import { HealthScore } from "@/lib/kobo/data";
 import { currentMonthStart, monthLabel, naira, rgba } from "@/lib/kobo/format";
+import { useElementHeight } from "@/lib/kobo/useElementHeight";
 import {
   budgetsView,
   cashflowBars,
@@ -139,7 +140,9 @@ export function DashboardPage() {
   const budgetsTop = budgetsView(budgets, transactions, categories).slice(0, 3);
   const cashflowData = monthlyCashflow(transactions);
   const hasCashflow = cashflowData.some((c) => c.cred > 0 || c.deb > 0);
-  const cashflow = cashflowBars(cashflowData);
+  const [barsRef, barsRowHeight] = useElementHeight<HTMLDivElement>();
+  const barsMaxPx = Math.max(40, barsRowHeight - 36);
+  const cashflow = cashflowBars(cashflowData, barsMaxPx);
   const recurring = subscriptionsView(subscriptions, categories);
   const recurTotal = monthlyRecurringTotal(subscriptions);
 
@@ -150,7 +153,7 @@ export function DashboardPage() {
     inOutTotal > 0 ? `conic-gradient(#12B76A 0% ${inPct.toFixed(1)}%, #E11D48 ${inPct.toFixed(1)}% 100%)` : "#2A2960";
 
   return (
-    <div style={{ maxWidth: 1180, margin: "0 auto", animation: "fadeUp .4s ease both" }}>
+    <div style={{ maxWidth: 1180, margin: "0 auto", animation: "fadeUp .4s ease backwards" }}>
       {!installDismissed && (
         <div
           className="kb-installbar"
@@ -233,15 +236,67 @@ export function DashboardPage() {
           })}
         </div>
         <div style={{ flex: 1 }} />
+        <div className="kb-dashbar-actions kb-hidem" style={{ display: "flex", gap: 10 }}>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            title="Refresh"
+            style={{
+              width: 40,
+              height: 40,
+              border: "1px solid #E6E6EB",
+              borderRadius: 12,
+              background: "#fff",
+              color: "#4A4A57",
+              cursor: refreshing ? "default" : "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            <span style={{ display: "flex", animation: refreshing ? "spin .8s linear infinite" : "none" }}>
+              <Icon name="refresh" size={16} />
+            </span>
+          </button>
+          <button
+            onClick={openLink}
+            style={{
+              height: 40,
+              padding: "0 16px",
+              border: "none",
+              borderRadius: 12,
+              background: "#2C6BFF",
+              color: "#fff",
+              fontFamily: "inherit",
+              fontWeight: 700,
+              fontSize: 13,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 7,
+            }}
+          >
+            <Icon name="plus" size={15} strokeWidth={2.2} />
+            Link account
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile-only: the actions above sit cramped next to the tab switcher on a
+         narrow screen, so on mobile they're hidden (see .kb-dashbar-actions in
+         kobo.css) and replaced with this fixed bar pinned above the bottom nav —
+         same actions, but "Link account" reads as the primary CTA it actually is. */}
+      <div className="kb-dashcta">
         <button
           onClick={handleRefresh}
           disabled={refreshing}
           title="Refresh"
           style={{
-            width: 40,
-            height: 40,
+            width: 52,
+            height: 52,
             border: "1px solid #E6E6EB",
-            borderRadius: 12,
+            borderRadius: 16,
             background: "#fff",
             color: "#4A4A57",
             cursor: refreshing ? "default" : "pointer",
@@ -249,31 +304,34 @@ export function DashboardPage() {
             alignItems: "center",
             justifyContent: "center",
             flexShrink: 0,
+            boxShadow: "0 8px 20px rgba(21,23,28,.12)",
           }}
         >
           <span style={{ display: "flex", animation: refreshing ? "spin .8s linear infinite" : "none" }}>
-            <Icon name="refresh" size={16} />
+            <Icon name="refresh" size={19} />
           </span>
         </button>
         <button
           onClick={openLink}
           style={{
-            height: 40,
-            padding: "0 16px",
+            flex: 1,
+            height: 52,
             border: "none",
-            borderRadius: 12,
+            borderRadius: 16,
             background: "#2C6BFF",
             color: "#fff",
             fontFamily: "inherit",
             fontWeight: 700,
-            fontSize: 13,
+            fontSize: 15,
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
-            gap: 7,
+            justifyContent: "center",
+            gap: 8,
+            boxShadow: "0 8px 20px rgba(44,107,255,.35)",
           }}
         >
-          <Icon name="plus" size={15} strokeWidth={2.2} />
+          <Icon name="plus" size={17} strokeWidth={2.2} />
           Link account
         </button>
       </div>
@@ -330,7 +388,7 @@ export function DashboardPage() {
                       </button>
                     </div>
                     <div className="kb-hero" style={{ fontSize: 44, fontWeight: 800, letterSpacing: "-.025em", marginTop: 7, lineHeight: 1 }}>
-                      {showBalance ? naira(total) : "₦ • • • • • •"}
+                      {showBalance ? naira(total) : "₦ •••"}
                     </div>
                     <div
                       style={{
@@ -486,10 +544,10 @@ export function DashboardPage() {
               </div>
             </div>
             {hasCashflow ? (
-              <div style={{ display: "flex", alignItems: "center", gap: 14, flex: 1, minHeight: 186 }}>
+              <div ref={barsRef} style={{ display: "flex", alignItems: "flex-end", gap: 14, flex: 1, minHeight: 186 }}>
                 {cashflow.map((c) => (
                   <div key={c.m} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-                    <div style={{ display: "flex", alignItems: "flex-end", gap: 5, height: 160 }}>
+                    <div style={{ display: "flex", alignItems: "flex-end", gap: 5 }}>
                       <ChartBar height={c.credH} color="linear-gradient(#19D88A,#12B76A)" label={`In: ${c.credFmt}`} />
                       <ChartBar height={c.debH} color="linear-gradient(#FB5572,#E11D48)" label={`Out: ${c.debFmt}`} />
                     </div>
@@ -505,73 +563,50 @@ export function DashboardPage() {
             )}
           </div>
 
-          <div
-            style={{
-              background: "linear-gradient(135deg,#14141E,#2A2566)",
-              borderRadius: 22,
-              padding: 24,
-              color: "#fff",
-              position: "relative",
-              overflow: "hidden",
-            }}
-          >
-            <div
-              style={{
-                position: "absolute",
-                width: 200,
-                height: 200,
-                borderRadius: "50%",
-                background: "rgba(91,141,255,.3)",
-                filter: "blur(45px)",
-                bottom: -70,
-                left: -30,
-              }}
-            />
-            <div style={{ position: "relative" }}>
-              <div style={{ fontSize: 15.5, fontWeight: 800 }}>Spending trend</div>
+          <div style={{ background: "#fff", border: "1px solid #E6E6EB", borderRadius: 22, padding: 24 }}>
+            <div style={{ fontSize: 15.5, fontWeight: 800 }}>Spending trend</div>
 
-              <div style={{ display: "flex", justifyContent: "center", margin: "18px 0" }}>
-                <div style={{ position: "relative", width: 128, height: 128, flexShrink: 0 }}>
-                  <div style={{ width: 128, height: 128, borderRadius: "50%", background: inOutDonut }} />
-                  <div
-                    style={{
-                      position: "absolute",
-                      inset: 18,
-                      background: "#1B1A3B",
-                      borderRadius: "50%",
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <div style={{ fontSize: 9.5, color: "#9A9AB0", fontWeight: 600 }}>Net</div>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>{netFmt}</div>
-                  </div>
+            <div style={{ display: "flex", justifyContent: "center", margin: "18px 0" }}>
+              <div style={{ position: "relative", width: 128, height: 128, flexShrink: 0 }}>
+                <div style={{ width: 128, height: 128, borderRadius: "50%", background: inOutDonut }} />
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 18,
+                    background: "#fff",
+                    borderRadius: "50%",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <div style={{ fontSize: 9.5, color: "#8A8A98", fontWeight: 600 }}>Net</div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: "#15171C" }}>{netFmt}</div>
                 </div>
               </div>
+            </div>
 
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, marginBottom: 20 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: "#9EE7C0" }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 2, background: "#12B76A" }} /> In
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: "#FFA9B6" }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 2, background: "#E11D48" }} /> Out
-                </div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, marginBottom: 20 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: "#6B6F7B" }}>
+                <span style={{ width: 8, height: 8, borderRadius: 2, background: "#12B76A" }} /> In
               </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: "#6B6F7B" }}>
+                <span style={{ width: 8, height: 8, borderRadius: 2, background: "#E11D48" }} /> Out
+              </div>
+            </div>
 
-              <div style={{ paddingTop: 16, borderTop: "1px solid rgba(255,255,255,.12)" }}>
-                <div style={{ fontSize: 12, color: "#B7B7D4", fontWeight: 600 }}>Net this month</div>
-                <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-.02em", marginTop: 4 }}>{netFmt}</div>
-                <div style={{ display: "flex", gap: 12, marginTop: 14 }}>
-                  <div style={{ flex: 1, background: "rgba(255,255,255,.07)", borderRadius: 14, padding: 14 }}>
-                    <div style={{ fontSize: 11.5, color: "#9EE7C0", fontWeight: 700 }}>In</div>
-                    <div style={{ fontSize: 16, fontWeight: 800, marginTop: 4 }}>{naira(monthIn)}</div>
-                  </div>
-                  <div style={{ flex: 1, background: "rgba(255,255,255,.07)", borderRadius: 14, padding: 14 }}>
-                    <div style={{ fontSize: 11.5, color: "#FFA9B6", fontWeight: 700 }}>Out</div>
-                    <div style={{ fontSize: 16, fontWeight: 800, marginTop: 4 }}>{naira(monthOut)}</div>
-                  </div>
+            <div style={{ paddingTop: 16, borderTop: "1px solid #F0F0F3" }}>
+              <div style={{ fontSize: 12, color: "#8A8A98", fontWeight: 600 }}>Net this month</div>
+              <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-.02em", marginTop: 4, color: "#15171C" }}>{netFmt}</div>
+              <div style={{ display: "flex", gap: 12, marginTop: 14 }}>
+                <div style={{ flex: 1, background: "#F2FBF6", borderRadius: 14, padding: 14 }}>
+                  <div style={{ fontSize: 11.5, color: "#0E9E6A", fontWeight: 700 }}>In</div>
+                  <div style={{ fontSize: 16, fontWeight: 800, marginTop: 4, color: "#0E7A52" }}>{naira(monthIn)}</div>
+                </div>
+                <div style={{ flex: 1, background: "#FEF3F2", borderRadius: 14, padding: 14 }}>
+                  <div style={{ fontSize: 11.5, color: "#DC2626", fontWeight: 700 }}>Out</div>
+                  <div style={{ fontSize: 16, fontWeight: 800, marginTop: 4, color: "#B42318" }}>{naira(monthOut)}</div>
                 </div>
               </div>
             </div>

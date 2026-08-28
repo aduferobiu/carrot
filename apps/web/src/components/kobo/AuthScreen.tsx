@@ -118,7 +118,7 @@ function nameError(name: string): string {
 
 export function AuthScreen() {
   const router = useRouter();
-  const { authMode, setAuthMode, session, dataLoading, accounts, profile, openLink, showToast } = useKobo();
+  const { authMode, setAuthMode, session, authLoading, dataLoading, accounts, profile, openLink, showToast } = useKobo();
   const [step, setStep] = useState<Step>("form");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -154,6 +154,15 @@ export function AuthScreen() {
       setStep("onboarding");
     }
   }, [justAuthed, session, dataLoading, accounts, router]);
+
+  // A session restored from localStorage on a fresh page load (not one just
+  // created via the form above) never sets `justAuthed`, so without this the
+  // already-authenticated user is stranded on the login screen. Skip
+  // onboarding here — that's only for brand-new signups.
+  useEffect(() => {
+    if (justAuthed || authLoading || !session) return;
+    router.push("/dashboard");
+  }, [justAuthed, authLoading, session, router]);
 
   async function doAuth() {
     setTouched({ fullName: true, email: true, password: true });

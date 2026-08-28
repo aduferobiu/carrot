@@ -18,7 +18,7 @@ export function AccountsPage() {
   }
 
   return (
-    <div style={{ maxWidth: 820, margin: "0 auto", animation: "fadeUp .4s ease both" }}>
+    <div style={{ maxWidth: 820, margin: "0 auto", animation: "fadeUp .4s ease backwards" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
         <div style={{ fontSize: 14, color: "#6B6F7B", fontWeight: 600 }}>{naira(total)} across your linked accounts</div>
         <button

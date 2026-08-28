@@ -7,7 +7,7 @@ export function SettingsPage() {
   const { bio, profile, toggleBio, editProfileToast, pwToast, exportData, deleteAccount } = useKobo();
 
   return (
-    <div style={{ maxWidth: 720, margin: "0 auto", animation: "fadeUp .4s ease both", display: "flex", flexDirection: "column", gap: 18 }}>
+    <div style={{ maxWidth: 720, margin: "0 auto", animation: "fadeUp .4s ease backwards", display: "flex", flexDirection: "column", gap: 18 }}>
       <div style={{ background: "#fff", border: "1px solid #E6E6EB", borderRadius: 20, padding: 22, display: "flex", alignItems: "center", gap: 16 }}>
         <div
           style={{

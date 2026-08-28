@@ -27,6 +27,20 @@ body {
   background-clip: padding-box;
 }
 
+/* `100vh` on iOS Safari locks to the tallest possible viewport (chrome
+ * collapsed), so with the toolbar expanded the shell renders taller than
+ * what's actually visible and the fixed bottom nav ends up below the fold.
+ * `100dvh` tracks the real visible viewport as Safari's chrome shows/hides.
+ * Kept behind a class (not inline) so unsupported browsers just ignore the
+ * invalid declaration and keep the inline 100vh fallback. */
+.kb-shell {
+  height: 100dvh !important;
+}
+
+.kb-dashcta {
+  display: none;
+}
+
 @keyframes fadeUp {
   from {
     opacity: 0;
@@ -134,7 +148,12 @@ body {
     padding-top: env(safe-area-inset-top);
   }
   .kb-resp {
-    grid-template-columns: 1fr !important;
+    /* `minmax(0, 1fr)`, not plain `1fr` — a grid track still respects each
+     * item's default min-content width, so a bare `1fr` column happily grows
+     * past the container to fit its widest child instead of shrinking to
+     * fit. `minmax(0, ...)` overrides that minimum so the column actually
+     * fits the viewport. */
+    grid-template-columns: minmax(0, 1fr) !important;
   }
   .kb-hero {
     font-size: 34px !important;
@@ -170,6 +189,15 @@ body {
   }
   .kb-installbar {
     display: flex !important;
+  }
+  .kb-dashcta {
+    display: flex !important;
+    position: fixed;
+    left: 14px;
+    right: 14px;
+    bottom: calc(78px + env(safe-area-inset-bottom));
+    gap: 10px;
+    z-index: 34;
   }
   .kb-spark {
     display: none !important;

@@ -17,7 +17,7 @@ export function TransactionsPage() {
   const groups = groupByDate(filtered);
 
   return (
-    <div style={{ maxWidth: 920, margin: "0 auto", animation: "fadeUp .4s ease both" }}>
+    <div style={{ maxWidth: 920, margin: "0 auto", animation: "fadeUp .4s ease backwards" }}>
       <div
         className="kb-mobsearch"
         style={{

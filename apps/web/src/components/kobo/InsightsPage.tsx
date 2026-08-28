@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { ChartBar } from "@/components/kobo/ChartBar";
 import { Icon } from "@/lib/kobo/icons";
 import { naira } from "@/lib/kobo/format";
+import { useElementHeight } from "@/lib/kobo/useElementHeight";
 import {
   cashflowBars,
   donutGradient,
@@ -32,14 +33,16 @@ export function InsightsPage() {
   const totSpend = Object.values(spend).reduce((a, b) => a + b, 0);
   const cashflowData = monthlyCashflow(transactions);
   const hasCashflow = cashflowData.some((c) => c.cred > 0 || c.deb > 0);
-  const cashflow = cashflowBars(cashflowData);
+  const [barsRef, barsRowHeight] = useElementHeight<HTMLDivElement>();
+  const barsMaxPx = Math.max(40, barsRowHeight - 36);
+  const cashflow = cashflowBars(cashflowData, barsMaxPx);
   const recurring = subscriptionsView(subscriptions, categories);
   const recurTotal = monthlyRecurringTotal(subscriptions);
 
   const topTiles = topCats.slice(0, 3);
 
   return (
-    <div style={{ maxWidth: 1080, margin: "0 auto", animation: "fadeUp .4s ease both" }}>
+    <div style={{ maxWidth: 1080, margin: "0 auto", animation: "fadeUp .4s ease backwards" }}>
       {topTiles.length > 0 && (
         <div className="kb-resp" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 20 }}>
           {topTiles.map((c) => (
@@ -68,7 +71,7 @@ export function InsightsPage() {
       )}
 
       <div className="kb-resp" style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 20 }}>
-        <div style={{ background: "#fff", border: "1px solid #E6E6EB", borderRadius: 22, padding: 24 }}>
+        <div style={{ background: "#fff", border: "1px solid #E6E6EB", borderRadius: 22, padding: 24, display: "flex", flexDirection: "column" }}>
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
             <div>
               <div style={{ fontSize: 16, fontWeight: 800 }}>Cashflow</div>
@@ -84,10 +87,10 @@ export function InsightsPage() {
             </div>
           </div>
           {hasCashflow ? (
-            <div style={{ display: "flex", alignItems: "center", gap: 16, height: 200 }}>
+            <div ref={barsRef} style={{ display: "flex", alignItems: "flex-end", gap: 16, flex: 1, minHeight: 186 }}>
               {cashflow.map((c) => (
                 <div key={c.m} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 9 }}>
-                  <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 170 }}>
+                  <div style={{ display: "flex", alignItems: "flex-end", gap: 6 }}>
                     <ChartBar height={c.credH} color="linear-gradient(#19D88A,#12B76A)" label={`In: ${c.credFmt}`} width={17} />
                     <ChartBar height={c.debH} color="linear-gradient(#FB5572,#E11D48)" label={`Out: ${c.debFmt}`} width={17} />
                   </div>
@@ -96,7 +99,7 @@ export function InsightsPage() {
               ))}
             </div>
           ) : (
-            <div style={{ height: 200, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, color: "#C4C4CE" }}>
+            <div style={{ flex: 1, minHeight: 186, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, color: "#C4C4CE" }}>
               <Icon name="chart" size={26} />
               <div style={{ fontSize: 13, color: "#8A8A98", fontWeight: 600 }}>No transaction history yet</div>
             </div>

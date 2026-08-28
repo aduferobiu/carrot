@@ -189,12 +189,16 @@ export function monthlyCashflow(transactions: Transaction[]): { m: string; cred:
   return months.map((mo) => ({ m: mo.m, ...totals.get(mo.key)! }));
 }
 
-export function cashflowBars(data: { m: string; cred: number; deb: number }[]) {
+// `maxPx` is the actual measured pixel height available for bars (see
+// useElementHeight) rather than a guessed constant, so bars fill however
+// tall their container really ends up — including when a card is stretched
+// to match a taller neighbor via CSS Grid.
+export function cashflowBars(data: { m: string; cred: number; deb: number }[], maxPx: number) {
   const max = Math.max(...data.map((c) => Math.max(c.cred, c.deb))) || 1;
   return data.map((c) => ({
     m: c.m,
-    credH: Math.round((c.cred / max) * 150) + "px",
-    debH: Math.round((c.deb / max) * 150) + "px",
+    credH: Math.round((c.cred / max) * maxPx) + "px",
+    debH: Math.round((c.deb / max) * maxPx) + "px",
     credFmt: naira(c.cred),
     debFmt: naira(c.deb),
   }));

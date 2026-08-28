@@ -14,7 +14,7 @@ export function BudgetsPage() {
   const totLeft = naira(Math.max(0, totAmt - totSpent));
 
   return (
-    <div style={{ maxWidth: 980, margin: "0 auto", animation: "fadeUp .4s ease both" }}>
+    <div style={{ maxWidth: 980, margin: "0 auto", animation: "fadeUp .4s ease backwards" }}>
       <div className="kb-resp" style={{ display: "grid", gridTemplateColumns: "1fr 1.3fr", gap: 20, marginBottom: 20 }}>
         <div
           style={{
