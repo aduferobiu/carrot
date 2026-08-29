@@ -39,6 +39,12 @@ async function getOthersCategoryId(): Promise<string> {
 const ACTIVE_RULE_SELECT = "id, category_id, keyword, priority, categories!inner(is_active)";
 
 async function getUserRules(userId: string): Promise<Rule[]> {
+  // user_id is a uuid column — an empty string isn't a valid uuid literal,
+  // so Postgres rejects the query outright rather than just matching zero
+  // rows. AR-08's test utility deliberately calls this with "" to mean "no
+  // personal rules to consider," so that has to short-circuit here instead
+  // of ever reaching the query.
+  if (!userId) return [];
   const { data, error } = await supabase
     .from("categorization_rules")
     .select(ACTIVE_RULE_SELECT)

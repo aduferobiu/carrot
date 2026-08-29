@@ -49,6 +49,8 @@ type KoboState = {
   reauthAction: ReauthAction;
   reauthPayload: string | null;
   txSearch: string;
+  budgetAlertThresholds: { warn: number; over: number };
+  maintenanceMode: { enabled: boolean; message: string };
 };
 
 const initialState: KoboState = {
@@ -80,6 +82,8 @@ const initialState: KoboState = {
   reauthAction: null,
   reauthPayload: null,
   txSearch: "",
+  budgetAlertThresholds: { warn: 80, over: 100 },
+  maintenanceMode: { enabled: false, message: "" },
 };
 
 function initialsOf(name: string): string {
@@ -155,6 +159,24 @@ export function KoboProvider({ children }: { children: React.ReactNode }) {
     return () => {
       mounted = false;
       sub.subscription.unsubscribe();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Public, unauthenticated config — maintenance mode has to be checkable
+  // before a visitor is even signed in, and budget alert thresholds (AR-07)
+  // apply the same regardless of sign-in state once loaded.
+  useEffect(() => {
+    let mounted = true;
+    fetch("/api/public-config")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((body) => {
+        if (!mounted || !body) return;
+        patch({ budgetAlertThresholds: body.budgetAlertThresholds, maintenanceMode: body.maintenanceMode });
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

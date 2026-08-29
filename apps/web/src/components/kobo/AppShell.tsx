@@ -51,11 +51,46 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     openLink,
     txSearch,
     setTxSearch,
+    maintenanceMode,
   } = useKobo();
 
   useEffect(() => {
     if (!authLoading && !session) router.push("/login");
   }, [authLoading, session, router]);
+
+  // AR-07: blocks normal app usage in place of a message, regardless of
+  // auth state — checked ahead of the loading/session gate below so it
+  // takes effect even before a visitor signs in. Never affects /admin/*,
+  // which lives outside this shell entirely.
+  if (maintenanceMode.enabled) {
+    return (
+      <div className="kb-shell" style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#EBEBEF", padding: 24 }}>
+        <div style={{ maxWidth: 420, background: "#fff", borderRadius: 24, padding: "40px 36px", textAlign: "center", boxShadow: "0 30px 70px rgba(15,23,42,.10)" }}>
+          <div
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 14,
+              background: "linear-gradient(135deg,#2C6BFF,#5B8DFF)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#fff",
+              fontWeight: 800,
+              fontSize: 22,
+              margin: "0 auto 20px",
+            }}
+          >
+            ◈
+          </div>
+          <div style={{ fontSize: 19, fontWeight: 800, marginBottom: 10 }}>Carrot is temporarily unavailable</div>
+          <div style={{ fontSize: 14, color: "#6B6F7B", lineHeight: 1.5 }}>
+            {maintenanceMode.message || "We're making some improvements. Please check back shortly."}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const titles: Record<string, [string, string]> = {
     dashboard: ["Home", `Good morning, ${profile?.fullName.split(" ")[0] ?? ""}`],

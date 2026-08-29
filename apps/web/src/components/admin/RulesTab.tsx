@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { Category } from "@/lib/kobo/data";
 import { adminFetch } from "./adminFetch";
 import * as s from "./adminStyles";
+import { TestCategorizationWidget } from "./TestCategorizationWidget";
 
 type GlobalRule = {
   id: string;
@@ -30,6 +31,7 @@ export function RulesTab() {
 
   const [newRuleKeyword, setNewRuleKeyword] = useState("");
   const [newRuleCategory, setNewRuleCategory] = useState("");
+  const [testingNewRule, setTestingNewRule] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -293,7 +295,19 @@ export function RulesTab() {
           <button style={s.btnPrimary} onClick={createRule}>
             Add rule
           </button>
+          <button style={s.btnGhost} onClick={() => setTestingNewRule((v) => !v)}>
+            {testingNewRule ? "Hide test" : "Test first"}
+          </button>
         </div>
+
+        {testingNewRule && (
+          <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid #F0F0F3" }}>
+            <div style={{ fontSize: 11.5, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: ".03em", marginBottom: 10 }}>
+              Test before saving (AR-08)
+            </div>
+            <TestCategorizationWidget initialDescription={newRuleKeyword} />
+          </div>
+        )}
       </div>
     </div>
   );

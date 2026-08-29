@@ -13,14 +13,19 @@ function monoDate(d: Date): string {
   return `${dd}-${mm}-${d.getFullYear()}`;
 }
 
+export type SyncResult = { imported: number; error: string | null };
+
 /** Best-effort: fetches ~6 months of history and upserts it (deduped on
  * mono_transaction_id, so calling this again to "refresh" never duplicates
- * rows). A failure here shouldn't undo an otherwise-successful account link. */
+ * rows). A failure here shouldn't undo an otherwise-successful account link
+ * — but it must be reported back to the caller rather than swallowed, since
+ * admin's account-health signals (AR-02) depend on distinguishing "a sync
+ * genuinely found nothing new" from "the sync attempt itself failed." */
 export async function syncTransactions(params: {
   userId: string;
   accountId: string;
   monoAccountId: string;
-}): Promise<number> {
+}): Promise<SyncResult> {
   const end = new Date();
   const start = new Date();
   start.setMonth(start.getMonth() - 6);
@@ -32,10 +37,11 @@ export async function syncTransactions(params: {
       end: monoDate(end),
     });
   } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
     console.error("[accounts] transaction sync fetch failed:", err);
-    return 0;
+    return { imported: 0, error: message };
   }
-  if (monoTxs.length === 0) return 0;
+  if (monoTxs.length === 0) return { imported: 0, error: null };
 
   // Ids are pre-generated (rather than left to Postgres' default) so we can
   // categorize before the insert and still know which row each result
@@ -92,10 +98,12 @@ export async function syncTransactions(params: {
   );
 
   let totalCount = 0;
+  let chunkError: string | null = null;
   const inserted: { id: string; category_source: string; normalized_description: string }[] = [];
   for (const r of chunkResults) {
     if (r.error) {
       console.error("[accounts] transaction sync upsert chunk failed:", JSON.stringify(r.error));
+      chunkError = r.error.message;
       continue;
     }
     totalCount += r.count ?? 0;
@@ -111,5 +119,29 @@ export async function syncTransactions(params: {
 
   await runDetection(params.userId);
 
-  return totalCount;
+  // A partial chunk failure alongside otherwise-successful chunks is still
+  // reported as an error (for the account-health signal) even though some
+  // transactions did land — better to flag it for admin to notice than to
+  // report clean success when part of the batch silently failed.
+  return { imported: totalCount, error: chunkError };
+}
+
+/** Persists a sync attempt's outcome onto the account row — the data behind
+ * AR-02's account-health signals (last successful sync, failed attempt
+ * count, current error state). A failed attempt bumps failed_sync_count and
+ * records the error without touching last_synced_at; a successful one
+ * (regardless of how many transactions it actually imported) resets both. */
+export async function recordSyncOutcome(accountId: string, result: SyncResult): Promise<void> {
+  if (result.error) {
+    const { data } = await supabase.from("accounts").select("failed_sync_count").eq("id", accountId).maybeSingle();
+    await supabase
+      .from("accounts")
+      .update({ last_sync_error: result.error, failed_sync_count: (data?.failed_sync_count ?? 0) + 1 })
+      .eq("id", accountId);
+  } else {
+    await supabase
+      .from("accounts")
+      .update({ last_synced_at: new Date().toISOString(), last_sync_error: null, failed_sync_count: 0 })
+      .eq("id", accountId);
+  }
 }

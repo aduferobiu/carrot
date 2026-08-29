@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { Category } from "@/lib/kobo/data";
 import { adminFetch } from "./adminFetch";
 import * as s from "./adminStyles";
+import { TestCategorizationWidget } from "./TestCategorizationWidget";
 
 type Suggestion = {
   id: string;
@@ -22,6 +23,7 @@ export function SuggestionsTab() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [testingId, setTestingId] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -89,6 +91,9 @@ export function SuggestionsTab() {
             </div>
             {view === "pending" ? (
               <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                <button style={s.btnGhost} onClick={() => setTestingId(testingId === sug.id ? null : sug.id)}>
+                  {testingId === sug.id ? "Hide test" : "Test first"}
+                </button>
                 <button style={s.btnGood} disabled={busyId === sug.id} onClick={() => act(sug.id, "/approve-global")}>
                   Approve → Global
                 </button>
@@ -116,6 +121,15 @@ export function SuggestionsTab() {
               </div>
             ))}
           </div>
+
+          {testingId === sug.id && (
+            <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid #F0F0F3" }}>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: ".03em", marginBottom: 10 }}>
+                Test before approving (AR-08)
+              </div>
+              <TestCategorizationWidget initialDescription={sug.sample_descriptions[0] ?? sug.normalized_description} />
+            </div>
+          )}
         </div>
       ))}
     </div>

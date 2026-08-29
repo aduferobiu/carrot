@@ -1,11 +1,7 @@
 import { supabase } from "../supabase";
+import { getConfig } from "../appConfig";
 
-const PROMOTION_THRESHOLD = 3;
 const USER_DERIVED_PRIORITY = 10;
-// AR-07 will make this (and its per-user-vs-cross-user aggregation mode)
-// admin-configurable without a code change; until that config screen
-// exists, cross-user aggregation at this same threshold is the default.
-const GLOBAL_SUGGESTION_THRESHOLD = 3;
 
 // Without this guard, a user correcting a handful of unrelated
 // "transfer"-only transactions to the same category would create an overly
@@ -45,19 +41,29 @@ async function maybeCreateGlobalSuggestion(normalizedDesc: string, correctedCate
     .maybeSingle();
   if (existingSuggestion && existingSuggestion.status !== "pending") return;
 
-  const { count } = await supabase
-    .from("transaction_corrections")
-    .select("id", { count: "exact", head: true })
-    .eq("normalized_description", normalizedDesc)
-    .eq("corrected_category_id", correctedCategoryId);
-  if ((count ?? 0) < GLOBAL_SUGGESTION_THRESHOLD) return;
+  const [threshold, aggregationMode] = await Promise.all([
+    getConfig<number>("suggestion_correction_threshold"),
+    getConfig<"cross_user" | "per_user">("suggestion_aggregation_mode"),
+  ]);
 
   const { data: correctionRows } = await supabase
     .from("transaction_corrections")
     .select("user_id")
     .eq("normalized_description", normalizedDesc)
     .eq("corrected_category_id", correctedCategoryId);
-  const contributingUserIds = [...new Set((correctionRows ?? []).map((r) => r.user_id))];
+  const rows = correctionRows ?? [];
+  const contributingUserIds = [...new Set(rows.map((r) => r.user_id))];
+
+  // cross_user: every correction anywhere counts toward one shared total.
+  // per_user: the threshold must be met by a single user's own repeated
+  // corrections — three different users each correcting it once would not
+  // qualify, since that's one person's habit observed three times over,
+  // not three independent confirmations of a universal pattern.
+  const countForThreshold =
+    aggregationMode === "per_user"
+      ? Math.max(0, ...Object.values(rows.reduce<Record<string, number>>((acc, r) => ({ ...acc, [r.user_id]: (acc[r.user_id] ?? 0) + 1 }), {})))
+      : rows.length;
+  if (countForThreshold < threshold) return;
 
   const { data: sampleTxs } = await supabase
     .from("transactions")
@@ -71,7 +77,7 @@ async function maybeCreateGlobalSuggestion(normalizedDesc: string, correctedCate
     {
       normalized_description: normalizedDesc,
       proposed_category_id: correctedCategoryId,
-      correction_count: count ?? 0,
+      correction_count: rows.length,
       sample_descriptions: sampleDescriptions,
       contributing_user_ids: contributingUserIds,
       status: "pending",
@@ -107,14 +113,17 @@ export async function recordCorrection(
 
   await maybeCreateGlobalSuggestion(normalizedDesc, correctedCategoryId);
 
-  const { count } = await supabase
-    .from("transaction_corrections")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .eq("normalized_description", normalizedDesc)
-    .eq("corrected_category_id", correctedCategoryId);
+  const [{ count }, promotionThreshold] = await Promise.all([
+    supabase
+      .from("transaction_corrections")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("normalized_description", normalizedDesc)
+      .eq("corrected_category_id", correctedCategoryId),
+    getConfig<number>("personal_rule_correction_threshold"),
+  ]);
 
-  if ((count ?? 0) < PROMOTION_THRESHOLD) return { ruleLearned: false };
+  if ((count ?? 0) < promotionThreshold) return { ruleLearned: false };
 
   // A rule for this exact pattern may already exist for this user, possibly
   // pointing at a different category if the user's labelling has drifted —

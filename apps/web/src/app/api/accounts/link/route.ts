@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/server/auth";
 import { exchangeMonoCode, getMonoAccount, MonoApiError } from "@/server/mono";
 import { supabase } from "@/server/supabase";
-import { syncTransactions } from "@/server/accountSync";
+import { recordSyncOutcome, syncTransactions } from "@/server/accountSync";
 
 // A heavy account's initial 6-month sync (categorizing + upserting well over
 // 1000 rows) can run past Next.js's default serverless timeout on plans that
@@ -76,13 +76,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: error?.message ?? "Failed to save linked account" }, { status: 500 });
     }
 
-    const transactionsImported = await syncTransactions({
+    const result = await syncTransactions({
       userId,
       accountId: data.id,
       monoAccountId,
     });
+    await recordSyncOutcome(data.id, result);
 
-    return NextResponse.json({ account: data, transactionsImported });
+    return NextResponse.json({ account: data, transactionsImported: result.imported });
   } catch (err) {
     console.error("[/api/accounts/link] failed:", err);
     if (err instanceof MonoApiError) {

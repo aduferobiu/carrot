@@ -113,6 +113,7 @@ export function DashboardPage() {
     refreshAll,
     toggleHealthModal,
     openTxDetail,
+    budgetAlertThresholds,
   } = useKobo();
   const [dashLayout, setDashLayout] = useState<Layout>("overview");
   const [refreshing, setRefreshing] = useState(false);
@@ -138,7 +139,7 @@ export function DashboardPage() {
   const spend = spendByCat(transactions, categories);
   const topCats = topCategories(spend, categories);
   const totSpend = Object.values(spend).reduce((a, b) => a + b, 0);
-  const budgetsTop = budgetsView(budgets, transactions, categories).slice(0, 3);
+  const budgetsTop = budgetsView(budgets, transactions, categories, budgetAlertThresholds).slice(0, 3);
   const cashflowData = monthlyCashflow(transactions);
   const hasCashflow = cashflowData.some((c) => c.cred > 0 || c.deb > 0);
   const [barsRef, barsRowHeight] = useElementHeight<HTMLDivElement>();

@@ -8,6 +8,11 @@ import { Icon } from "@/lib/kobo/icons";
 const ROUTES: [string, string, string][] = [
   ["/admin", "Dashboard", "home"],
   ["/admin/categorization", "Categorization", "list"],
+  ["/admin/users", "Users", "user"],
+  ["/admin/mono-usage", "Aggregator Usage", "zap"],
+  ["/admin/test-categorization", "Test Categorization", "search"],
+  ["/admin/audit-log", "Audit Log", "shield"],
+  ["/admin/settings", "Settings", "settings"],
 ];
 
 export function AdminLayout({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
@@ -106,7 +111,7 @@ export function AdminLayout({ title, subtitle, children }: { title: string; subt
 
         <nav style={{ display: "flex", flexDirection: "column", gap: 3 }}>
           {ROUTES.map(([href, label, icon]) => {
-            const isActive = pathname === href;
+            const isActive = href === "/admin" ? pathname === href : pathname.startsWith(href);
             return (
               <Link
                 key={href}

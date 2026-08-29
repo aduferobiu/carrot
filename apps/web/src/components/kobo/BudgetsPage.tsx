@@ -6,8 +6,8 @@ import { budgetsView } from "@/lib/kobo/selectors";
 import { useKobo } from "@/lib/kobo/store";
 
 export function BudgetsPage() {
-  const { budgets, transactions, categories, openBudget, deleteBudget } = useKobo();
-  const views = budgetsView(budgets, transactions, categories);
+  const { budgets, transactions, categories, budgetAlertThresholds, openBudget, deleteBudget } = useKobo();
+  const views = budgetsView(budgets, transactions, categories, budgetAlertThresholds);
   const totAmt = views.reduce((a, b) => a + b.amount, 0);
   const totSpent = views.reduce((a, b) => a + b.spent, 0);
   const totPct = totAmt > 0 ? Math.round((totSpent / totAmt) * 100) + "%" : "0%";
@@ -52,7 +52,8 @@ export function BudgetsPage() {
         <div style={{ background: "#fff", border: "1px solid #E6E6EB", borderRadius: 22, padding: 24, display: "flex", flexDirection: "column", justifyContent: "center" }}>
           <div style={{ fontSize: 15.5, fontWeight: 800 }}>Stay ahead of overspending</div>
           <div style={{ fontSize: 13, color: "#8A8A98", marginTop: 6, lineHeight: 1.5 }}>
-            Carrot tracks every budget in real time and alerts you the moment you cross 80% and 100% of a category limit.
+            Carrot tracks every budget in real time and alerts you the moment you cross {budgetAlertThresholds.warn}% and{" "}
+            {budgetAlertThresholds.over}% of a category limit.
           </div>
           <button
             onClick={openBudget}

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/server/auth";
 import { getMonoAccount, MonoApiError } from "@/server/mono";
 import { supabase } from "@/server/supabase";
-import { syncTransactions } from "@/server/accountSync";
+import { recordSyncOutcome, syncTransactions } from "@/server/accountSync";
 
 // See the matching comment in accounts/link/route.ts — a heavy account's
 // sync can run long, and the default serverless timeout would kill it
@@ -43,13 +43,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: error?.message ?? "Failed to update account balance" }, { status: 500 });
     }
 
-    const transactionsImported = await syncTransactions({
+    const result = await syncTransactions({
       userId,
       accountId: id,
       monoAccountId: existing.mono_account_id,
     });
+    await recordSyncOutcome(id, result);
 
-    return NextResponse.json({ account: data, transactionsImported });
+    return NextResponse.json({ account: data, transactionsImported: result.imported });
   } catch (err) {
     console.error(`[/api/accounts/${id}/sync] failed:`, err);
     if (err instanceof MonoApiError) {

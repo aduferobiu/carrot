@@ -123,8 +123,16 @@ export type BudgetView = {
   statusLabel: string;
 };
 
-/** `spent` is computed here from transactions within the budget's month, not stored. */
-export function budgetsView(budgets: Budget[], transactions: Transaction[], categories: Category[]): BudgetView[] {
+/** `spent` is computed here from transactions within the budget's month, not
+ * stored. `thresholds` defaults to the app's original hardcoded 80%/100% —
+ * pass the live values from useKobo() (sourced from app_config, AR-07) to
+ * respect whatever an admin has actually configured. */
+export function budgetsView(
+  budgets: Budget[],
+  transactions: Transaction[],
+  categories: Category[],
+  thresholds: { warn: number; over: number } = { warn: 80, over: 100 },
+): BudgetView[] {
   return budgets.map((b) => {
     const c = catById(categories, b.category_id);
     const periodEnd = addMonths(b.period_start, 1);
@@ -138,7 +146,7 @@ export function budgetsView(budgets: Budget[], transactions: Transaction[], cate
       )
       .reduce((a, t) => a + t.amount, 0);
     const pct = b.amount > 0 ? Math.round((spent / b.amount) * 100) : 0;
-    const status = pct >= 100 ? "over" : pct >= 80 ? "warn" : "ok";
+    const status = pct >= thresholds.over ? "over" : pct >= thresholds.warn ? "warn" : "ok";
     const barColor = status === "over" ? "#EF4444" : status === "warn" ? "#F59E0B" : c.color;
     return {
       id: b.id,
