@@ -112,6 +112,7 @@ export function DashboardPage() {
     openLink,
     refreshAll,
     toggleHealthModal,
+    openTxDetail,
   } = useKobo();
   const [dashLayout, setDashLayout] = useState<Layout>("overview");
   const [refreshing, setRefreshing] = useState(false);
@@ -337,7 +338,7 @@ export function DashboardPage() {
       </div>
 
       {dashLayout === "overview" && (
-        <div className="kb-resp" style={{ display: "grid", gridTemplateColumns: "1.55fr 1fr", gap: 20 }}>
+        <div className="kb-resp" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.55fr) minmax(0, 1fr)", gap: 20 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             <div
               className="kb-herocard"
@@ -423,7 +424,11 @@ export function DashboardPage() {
                 <EmptyState icon="list" text="No transactions yet" />
               ) : (
                 recentTx.map((t) => (
-                  <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 13, padding: "11px 14px", borderRadius: 14 }}>
+                  <div
+                    key={t.id}
+                    onClick={() => openTxDetail(t.id)}
+                    style={{ display: "flex", alignItems: "center", gap: 13, padding: "11px 14px", borderRadius: 14, cursor: "pointer" }}
+                  >
                     <div
                       style={{
                         width: 42,
@@ -527,7 +532,7 @@ export function DashboardPage() {
       )}
 
       {dashLayout === "analytics" && (
-        <div className="kb-resp" style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 20 }}>
+        <div className="kb-resp" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.5fr) minmax(0, 1fr)", gap: 20 }}>
           <div style={{ background: "#fff", border: "1px solid #E6E6EB", borderRadius: 22, padding: 24, display: "flex", flexDirection: "column" }}>
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
               <div>

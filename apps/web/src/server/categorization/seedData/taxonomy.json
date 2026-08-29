@@ -76,7 +76,7 @@
       "icon": "play",
       "color": "#DB2777",
       "subcategories": [
-        { "name": "Streaming & Digital Media", "keywords": ["netflix", "spotify", "apple music", "showmax"] },
+        { "name": "Streaming & Digital Media", "keywords": ["netflix", "spotify", "apple music", "showmax", "scribd", "apple com bill"] },
         { "name": "Cinema & Events", "keywords": ["cinema", "filmhouse", "silverbird"] },
         { "name": "Nightlife & Social", "keywords": ["lounge"] }
       ]
@@ -110,7 +110,7 @@
       "color": "#64748B",
       "subcategories": [
         { "name": "Outgoing Transfers", "keywords": ["transfer to", "sent to", "wire transfer", "money sent"] },
-        { "name": "Incoming Transfers (non-income)", "keywords": ["received from", "credit alert", "money received"] },
+        { "name": "Incoming Transfers (non-income)", "keywords": ["received from", "credit alert", "money received", "interbank transfer"] },
         { "name": "Cash Withdrawal", "keywords": ["atm", "cash withdrawal"] }
       ]
     },
@@ -131,7 +131,7 @@
       "icon": "cash",
       "color": "#EA580C",
       "subcategories": [
-        { "name": "Bank Charges", "keywords": ["sms alert", "maintenance fee", "stamp duty", "electronic money transfer levy"] },
+        { "name": "Bank Charges", "keywords": ["sms alert", "maintenance fee", "stamp duty", "stamp duties", "electronic money transfer levy", "vat charges", "value added tax", "commission on nip transfer"] },
         { "name": "Loan Repayments", "keywords": ["loan repayment"] }
       ]
     },

@@ -4,6 +4,11 @@ import { getMonoAccount, MonoApiError } from "@/server/mono";
 import { supabase } from "@/server/supabase";
 import { syncTransactions } from "@/server/accountSync";
 
+// See the matching comment in accounts/link/route.ts — a heavy account's
+// sync can run long, and the default serverless timeout would kill it
+// mid-upsert with no visible error.
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const userId = await requireAuth(req);
   if (userId instanceof NextResponse) return userId;

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChartBar } from "@/components/kobo/ChartBar";
 import { Icon } from "@/lib/kobo/icons";
@@ -27,22 +28,53 @@ function EmptyState({ icon, text }: { icon: string; text: string }) {
 
 export function InsightsPage() {
   const router = useRouter();
-  const { transactions, categories, subscriptions } = useKobo();
-  const spend = spendByCat(transactions, categories);
+  const { transactions, categories, subscriptions, accounts } = useKobo();
+  const [insightsAcc, setInsightsAcc] = useState("all");
+  const scopedTx = insightsAcc === "all" ? transactions : transactions.filter((t) => t.account_id === insightsAcc);
+  const scopedSubs = insightsAcc === "all" ? subscriptions : subscriptions.filter((s) => s.account_id === insightsAcc);
+  const spend = spendByCat(scopedTx, categories);
   const topCats = topCategories(spend, categories);
   const totSpend = Object.values(spend).reduce((a, b) => a + b, 0);
-  const cashflowData = monthlyCashflow(transactions);
+  const cashflowData = monthlyCashflow(scopedTx);
   const hasCashflow = cashflowData.some((c) => c.cred > 0 || c.deb > 0);
   const [barsRef, barsRowHeight] = useElementHeight<HTMLDivElement>();
   const barsMaxPx = Math.max(40, barsRowHeight - 36);
   const cashflow = cashflowBars(cashflowData, barsMaxPx);
-  const recurring = subscriptionsView(subscriptions, categories);
-  const recurTotal = monthlyRecurringTotal(subscriptions);
+  const recurring = subscriptionsView(scopedSubs, categories);
+  const recurTotal = monthlyRecurringTotal(scopedSubs);
 
   const topTiles = topCats.slice(0, 3);
 
   return (
     <div style={{ maxWidth: 1080, margin: "0 auto", animation: "fadeUp .4s ease backwards" }}>
+      {accounts.length > 1 && (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
+          {[{ id: "all", label: "All accounts" }, ...accounts.map((a) => ({ id: a.id, label: a.institution_name || a.name }))].map((a) => {
+            const active = insightsAcc === a.id;
+            return (
+              <button
+                key={a.id}
+                onClick={() => setInsightsAcc(a.id)}
+                style={{
+                  height: 36,
+                  padding: "0 15px",
+                  border: "1px solid #E6E6EB",
+                  borderRadius: 11,
+                  fontFamily: "inherit",
+                  fontWeight: 700,
+                  fontSize: 13,
+                  cursor: "pointer",
+                  background: active ? "#15171C" : "#fff",
+                  color: active ? "#fff" : "#4A4A57",
+                }}
+              >
+                {a.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {topTiles.length > 0 && (
         <div className="kb-resp" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 20 }}>
           {topTiles.map((c) => (

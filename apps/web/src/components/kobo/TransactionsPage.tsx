@@ -35,10 +35,9 @@ function chipRemoveBtn(onClick: () => void) {
 }
 
 export function TransactionsPage() {
-  const { accounts, transactions, categories, txSearch, setTxSearch, openCategoryPicker, flagAsSubscription } = useKobo();
+  const { accounts, transactions, categories, txSearch, setTxSearch, openCategoryPicker, openTxDetail } = useKobo();
   const [appliedAccs, setAppliedAccs] = useState<string[]>([]);
   const [appliedCats, setAppliedCats] = useState<string[]>([]);
-  const [editTxId, setEditTxId] = useState<string | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const activeFilterCount = appliedAccs.length + appliedCats.length;
 
@@ -211,11 +210,10 @@ export function TransactionsPage() {
           <div style={{ background: "#fff", border: "1px solid #E6E6EB", borderRadius: 18, overflow: "hidden" }}>
             {g.items.map((t) => {
               const row = txView(t, accounts, categories);
-              const editing = editTxId === t.id;
               return (
                 <div key={t.id} style={{ borderBottom: "1px solid #F3F3F6" }}>
                   <div
-                    onClick={() => setEditTxId(editing ? null : t.id)}
+                    onClick={() => openTxDetail(t.id)}
                     style={{ display: "flex", alignItems: "center", gap: 14, padding: "13px 16px", cursor: "pointer" }}
                   >
                     <div
@@ -267,37 +265,6 @@ export function TransactionsPage() {
                       </button>
                     </div>
                   </div>
-                  {editing && (
-                    <div style={{ padding: "4px 16px 16px", background: "#FAFAFC" }}>
-                      {t.type === "expense" && (
-                        <button
-                          onClick={() => {
-                            flagAsSubscription(t.id);
-                            setEditTxId(null);
-                          }}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 7,
-                            height: 34,
-                            padding: "0 12px",
-                            marginTop: 10,
-                            border: "1px dashed #C9C9D4",
-                            borderRadius: 10,
-                            background: "transparent",
-                            fontFamily: "inherit",
-                            fontWeight: 600,
-                            fontSize: 12.5,
-                            cursor: "pointer",
-                            color: "#2C6BFF",
-                          }}
-                        >
-                          <Icon name="refresh" size={15} />
-                          Mark as subscription
-                        </button>
-                      )}
-                    </div>
-                  )}
                 </div>
               );
             })}

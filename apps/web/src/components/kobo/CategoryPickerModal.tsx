@@ -8,7 +8,7 @@ import { useKobo } from "@/lib/kobo/store";
 export function CategoryPickerModal() {
   const { categoryPickerTxId, closeCategoryPicker, categories, correctCat } = useKobo();
   const [search, setSearch] = useState("");
-  const leaves = useMemo(() => categories.filter((c) => c.parent_id), [categories]);
+  const leaves = useMemo(() => categories.filter((c) => c.parent_id && c.is_active !== false), [categories]);
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return leaves;

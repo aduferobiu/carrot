@@ -14,6 +14,7 @@ import {
 import { openMonoConnect } from "@/lib/mono";
 import { supabase } from "@/lib/supabase";
 import { Account, Budget, Category, HealthScore, Notification, Subscription, Transaction } from "./data";
+import { fetchAllRows } from "./fetchAllRows";
 
 export type ReauthAction = "delete" | "export" | "removeAccount" | null;
 
@@ -43,6 +44,7 @@ type KoboState = {
   budgetAmt: string;
   healthModalOpen: boolean;
   categoryPickerTxId: string | null;
+  txDetailId: string | null;
   reauthOpen: boolean;
   reauthAction: ReauthAction;
   reauthPayload: string | null;
@@ -73,6 +75,7 @@ const initialState: KoboState = {
   budgetAmt: "",
   healthModalOpen: false,
   categoryPickerTxId: null,
+  txDetailId: null,
   reauthOpen: false,
   reauthAction: null,
   reauthPayload: null,
@@ -107,6 +110,8 @@ type KoboContextValue = KoboState & {
   toggleHealthModal: () => void;
   openCategoryPicker: (txId: string) => void;
   closeCategoryPicker: () => void;
+  openTxDetail: (txId: string) => void;
+  closeTxDetail: () => void;
   openReauth: (action: ReauthAction, payload?: string) => void;
   closeReauth: () => void;
   confirmReauth: () => void;
@@ -175,7 +180,14 @@ export function KoboProvider({ children }: { children: React.ReactNode }) {
     Promise.all([
       supabase.from("categories").select("*").order("name"),
       supabase.from("accounts").select("*").order("created_at"),
-      supabase.from("transactions").select("*").order("occurred_at", { ascending: false }),
+      fetchAllRows<Transaction>((from, to) =>
+        supabase
+          .from("transactions")
+          .select("*")
+          .order("occurred_at", { ascending: false })
+          .order("id", { ascending: true })
+          .range(from, to),
+      ).then((data) => ({ data, error: null })),
       supabase.from("budgets").select("*"),
       supabase.from("notifications").select("*").order("created_at", { ascending: false }),
       supabase.from("subscriptions").select("*"),
@@ -255,14 +267,19 @@ export function KoboProvider({ children }: { children: React.ReactNode }) {
               account: Account;
               transactionsImported: number;
             };
-            const { data: newTxs } = await supabase
-              .from("transactions")
-              .select("*")
-              .eq("account_id", account.id);
+            const newTxs = await fetchAllRows<Transaction>((from, to) =>
+              supabase
+                .from("transactions")
+                .select("*")
+                .eq("account_id", account.id)
+                .order("occurred_at", { ascending: false })
+                .order("id", { ascending: true })
+                .range(from, to),
+            );
             setState((s) => ({
               ...s,
               accounts: [...s.accounts, account],
-              transactions: [...s.transactions, ...((newTxs ?? []) as Transaction[])],
+              transactions: [...s.transactions, ...newTxs],
               linking: false,
             }));
             showToast(
@@ -413,6 +430,8 @@ export function KoboProvider({ children }: { children: React.ReactNode }) {
   const toggleHealthModal = useCallback(() => setState((s) => ({ ...s, healthModalOpen: !s.healthModalOpen })), []);
   const openCategoryPicker = useCallback((txId: string) => patch({ categoryPickerTxId: txId }), [patch]);
   const closeCategoryPicker = useCallback(() => patch({ categoryPickerTxId: null }), [patch]);
+  const openTxDetail = useCallback((txId: string) => patch({ txDetailId: txId }), [patch]);
+  const closeTxDetail = useCallback(() => patch({ txDetailId: null }), [patch]);
 
   const openReauth = useCallback((action: ReauthAction, payload?: string) => {
     patch({ reauthOpen: true, reauthAction: action, reauthPayload: payload ?? null, profileMenu: false });
@@ -468,7 +487,14 @@ export function KoboProvider({ children }: { children: React.ReactNode }) {
       );
       const [accs, txs, subs, healthRes] = await Promise.all([
         supabase.from("accounts").select("*").order("created_at"),
-        supabase.from("transactions").select("*").order("occurred_at", { ascending: false }),
+        fetchAllRows<Transaction>((from, to) =>
+          supabase
+            .from("transactions")
+            .select("*")
+            .order("occurred_at", { ascending: false })
+            .order("id", { ascending: true })
+            .range(from, to),
+        ).then((data) => ({ data, error: null })),
         supabase.from("subscriptions").select("*"),
         fetch("/api/insights/health-score", { headers: { authorization: `Bearer ${token}` } }),
       ]);
@@ -514,6 +540,8 @@ export function KoboProvider({ children }: { children: React.ReactNode }) {
       toggleHealthModal,
       openCategoryPicker,
       closeCategoryPicker,
+      openTxDetail,
+      closeTxDetail,
       openReauth,
       closeReauth,
       confirmReauth,
@@ -549,6 +577,8 @@ export function KoboProvider({ children }: { children: React.ReactNode }) {
       toggleHealthModal,
       openCategoryPicker,
       closeCategoryPicker,
+      openTxDetail,
+      closeTxDetail,
       openReauth,
       closeReauth,
       confirmReauth,

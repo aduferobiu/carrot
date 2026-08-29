@@ -10,6 +10,7 @@ const FALLBACK_CATEGORY: Category = {
   color: "#6B7280",
   is_default: true,
   parent_id: null,
+  is_active: true,
 };
 
 export function catById(categories: Category[], id: string | null): Category {
@@ -293,6 +294,34 @@ export type TxViewRow = {
   amountColor: string;
   type: Transaction["type"];
 };
+
+export type Counterparty = { name: string; bank: string | null };
+
+// Mono gives us only a free-text narration, never structured sender/receiver
+// fields, so this is a best-effort parse of the handful of narration shapes
+// Nigerian banks actually use for a person-to-person transfer. Many
+// narrations glue a reference code directly onto the end of a name with no
+// separator (e.g. "...ADEPOJU ADUFEAT126TRF2MPTL02U...") which can't be
+// split from the name by any general pattern — those are deliberately left
+// unmatched (returning null) rather than guessed at, since a wrong-looking
+// name is worse than no name.
+const COUNTERPARTY_PATTERNS: { re: RegExp; bank: number | null; name: number }[] = [
+  { re: /OUTWARD TRANSFER TO\s+([A-Za-z][A-Za-z .]*?)\s*-\s*(.+)$/i, bank: 1, name: 2 },
+  { re: /INWARD TRANSFER FROM\s+([A-Za-z][A-Za-z .]*?)\s*-\s*(.+)$/i, bank: 1, name: 2 },
+  { re: /^Received from\s+(.+)$/i, bank: null, name: 1 },
+];
+
+export function parseCounterparty(rawDescription: string | null | undefined): Counterparty | null {
+  if (!rawDescription) return null;
+  for (const { re, bank, name } of COUNTERPARTY_PATTERNS) {
+    const m = rawDescription.match(re);
+    if (!m) continue;
+    const nameVal = m[name]?.trim();
+    if (!nameVal) continue;
+    return { name: nameVal, bank: bank !== null ? (m[bank]?.trim() ?? null) : null };
+  }
+  return null;
+}
 
 export function txView(t: Transaction, accounts: Account[], categories: Category[]): TxViewRow {
   const c = catById(categories, t.category_id);

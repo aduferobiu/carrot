@@ -1,14 +1,16 @@
-export type Rule = { id: string; category_id: string; keyword: string };
+export type Rule = { id: string; category_id: string; keyword: string; priority: number };
 
 export function escapeRegex(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-// Longer keywords are more specific and are tried first. Array.prototype.sort
-// is stable, so ties (equal length) preserve insertion order — seed data
-// order matters for tie-breaks.
+// Lower priority numbers are tried first — this is what admin's Tab 1 rule
+// reordering (AR-03) actually edits, so a newly added narrow rule can be
+// moved above a broader existing one. Within equal priority, longer
+// keywords are more specific and go first; Array.prototype.sort is stable,
+// so further ties preserve insertion order — seed data order matters there.
 export function sortBySpecificity(rules: Rule[]): Rule[] {
-  return [...rules].sort((a, b) => b.keyword.length - a.keyword.length);
+  return [...rules].sort((a, b) => a.priority - b.priority || b.keyword.length - a.keyword.length);
 }
 
 export type MatchResult = { categoryId: string; ruleId: string | null };

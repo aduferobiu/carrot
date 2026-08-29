@@ -17,12 +17,18 @@ function median(nums: number[]): number {
   return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
-export function frequencyFromIntervalDays(days: number): Frequency | null {
+export function frequencyFromIntervalDays(days: number, occurrenceCount = 3): Frequency | null {
   if (days >= 5 && days <= 10) return "weekly";
   // Wider than a strict 30±5 days — real bill cycles (e.g. Discos) commonly
   // drift by a week or more between charges.
   if (days >= 25 && days <= 45) return "monthly";
   if (days >= 350 && days <= 380) return "yearly";
+  // With only two occurrences so far, a gap up to ~2 months still reads as
+  // an emerging monthly subscription — don't make the user wait for a third
+  // charge to find out. Three-or-more-occurrence groups keep the tighter
+  // 45-day monthly band above, since a wider tolerance there would risk
+  // folding in unrelated one-off repeat purchases.
+  if (occurrenceCount === 2 && days > 45 && days <= 62) return "monthly";
   return null;
 }
 
@@ -79,14 +85,14 @@ export async function runDetection(userId: string): Promise<void> {
   const detectedKeys = new Set<string>();
 
   for (const [key, g] of groups) {
-    if (g.occurrences.length < 3) continue;
+    if (g.occurrences.length < 2) continue;
 
     const sorted = [...g.occurrences].sort((a, b) => a.date.getTime() - b.date.getTime());
     const intervals: number[] = [];
     for (let i = 1; i < sorted.length; i++) {
       intervals.push((sorted[i].date.getTime() - sorted[i - 1].date.getTime()) / DAY_MS);
     }
-    const frequency = frequencyFromIntervalDays(median(intervals));
+    const frequency = frequencyFromIntervalDays(median(intervals), g.occurrences.length);
     if (!frequency) continue;
 
     const existing = existingByKey.get(key);

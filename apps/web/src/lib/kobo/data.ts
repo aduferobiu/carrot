@@ -10,6 +10,7 @@ export type Category = {
   color: string;
   is_default: boolean;
   parent_id: string | null;
+  is_active: boolean;
 };
 
 export type Account = {

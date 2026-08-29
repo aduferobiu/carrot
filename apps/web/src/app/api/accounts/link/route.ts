@@ -4,6 +4,12 @@ import { exchangeMonoCode, getMonoAccount, MonoApiError } from "@/server/mono";
 import { supabase } from "@/server/supabase";
 import { syncTransactions } from "@/server/accountSync";
 
+// A heavy account's initial 6-month sync (categorizing + upserting well over
+// 1000 rows) can run past Next.js's default serverless timeout on plans that
+// allow a longer one; the account row itself is already committed by then,
+// so a killed request just leaves it stuck with zero transactions.
+export const maxDuration = 60;
+
 function nameTokens(name: string): string[] {
   return name
     .toUpperCase()

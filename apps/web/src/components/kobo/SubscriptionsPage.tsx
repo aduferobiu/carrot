@@ -64,8 +64,8 @@ export function SubscriptionsPage() {
         <div style={{ background: "#fff", border: "1px solid #E6E6EB", borderRadius: 22, padding: 32, textAlign: "center" }}>
           <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6 }}>No subscriptions detected yet</div>
           <div style={{ fontSize: 13, color: "#8A8A98", maxWidth: 380, margin: "0 auto" }}>
-            Subscriptions build up automatically once a charge repeats on the same account 3+ times — link an account and
-            sync a few months of history, or flag one manually from the Transactions page.
+            Subscriptions build up automatically once a charge repeats on the same account — link an account and sync a
+            few months of history, or flag one manually from the Transactions page.
           </div>
         </div>
       )}

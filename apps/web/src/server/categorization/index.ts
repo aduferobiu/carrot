@@ -32,11 +32,19 @@ async function getOthersCategoryId(): Promise<string> {
   return data.id;
 }
 
+// Only active rules pointing at an active category are live: an admin
+// disabling either one (AR-03) must take effect for matching immediately —
+// well, immediately for user rules, and within getSeedRulesCached's 5-minute
+// TTL for seed rules, an existing tradeoff this doesn't change.
+const ACTIVE_RULE_SELECT = "id, category_id, keyword, priority, categories!inner(is_active)";
+
 async function getUserRules(userId: string): Promise<Rule[]> {
   const { data, error } = await supabase
     .from("categorization_rules")
-    .select("id, category_id, keyword")
-    .eq("user_id", userId);
+    .select(ACTIVE_RULE_SELECT)
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .eq("categories.is_active", true);
   if (error) throw new Error(error.message);
   return data ?? [];
 }
@@ -44,8 +52,10 @@ async function getUserRules(userId: string): Promise<Rule[]> {
 async function getSeedRules(): Promise<Rule[]> {
   const { data, error } = await supabase
     .from("categorization_rules")
-    .select("id, category_id, keyword")
-    .is("user_id", null);
+    .select(ACTIVE_RULE_SELECT)
+    .is("user_id", null)
+    .eq("status", "active")
+    .eq("categories.is_active", true);
   if (error) throw new Error(error.message);
   return data ?? [];
 }
