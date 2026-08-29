@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Category } from "@/lib/kobo/data";
 import { adminFetch } from "./adminFetch";
+import { AdminModal } from "./AdminModal";
 import * as s from "./adminStyles";
 import { TestCategorizationWidget } from "./TestCategorizationWidget";
 
@@ -15,19 +16,12 @@ type GlobalRule = {
   match_count: number;
 };
 
-const ICONS = ["cart", "car", "zap", "health", "book", "bag", "play", "building", "trend", "swap", "income", "cash", "grid"];
-
 export function RulesTab() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [rules, setRules] = useState<GlobalRule[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  const [newCatName, setNewCatName] = useState("");
-  const [newCatParent, setNewCatParent] = useState("");
-  const [newCatKind, setNewCatKind] = useState<"income" | "expense">("expense");
-  const [newCatIcon, setNewCatIcon] = useState(ICONS[0]);
-  const [newCatColor, setNewCatColor] = useState("#6B7280");
+  const [modalOpen, setModalOpen] = useState(false);
 
   const [newRuleKeyword, setNewRuleKeyword] = useState("");
   const [newRuleCategory, setNewRuleCategory] = useState("");
@@ -55,48 +49,22 @@ export function RulesTab() {
   }, []);
 
   const leaves = categories.filter((c) => c.parent_id);
-  const parents = categories.filter((c) => !c.parent_id);
-  const categoryName = (id: string) => categories.find((c) => c.id === id)?.name ?? id;
 
-  async function createCategory() {
-    if (!newCatName.trim() || !newCatParent) return;
-    try {
-      await adminFetch("/api/admin/categories", {
-        method: "POST",
-        body: JSON.stringify({ name: newCatName.trim(), kind: newCatKind, icon: newCatIcon, color: newCatColor, parent_id: newCatParent }),
-      });
-      setNewCatName("");
-      load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to create category");
-    }
-  }
-
-  async function toggleCategory(cat: Category) {
-    try {
-      await adminFetch(`/api/admin/categories/${cat.id}`, { method: "PATCH", body: JSON.stringify({ is_active: !cat.is_active }) });
-      load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to update category");
-    }
-  }
-
-  async function renameCategory(cat: Category) {
-    const name = prompt("New name", cat.name);
-    if (!name || !name.trim() || name === cat.name) return;
-    try {
-      await adminFetch(`/api/admin/categories/${cat.id}`, { method: "PATCH", body: JSON.stringify({ name: name.trim() }) });
-      load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to rename category");
-    }
+  function openModal() {
+    setNewRuleKeyword("");
+    setNewRuleCategory("");
+    setTestingNewRule(false);
+    setModalOpen(true);
   }
 
   async function createRule() {
-    if (!newRuleKeyword.trim() || !newRuleCategory) return;
+    if (!newRuleKeyword.trim() || !newRuleCategory) {
+      setError("Keyword and category are required");
+      return;
+    }
     try {
       await adminFetch("/api/admin/rules", { method: "POST", body: JSON.stringify({ keyword: newRuleKeyword.trim(), category_id: newRuleCategory }) });
-      setNewRuleKeyword("");
+      setModalOpen(false);
       load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to create rule");
@@ -157,77 +125,15 @@ export function RulesTab() {
       {error && <div style={{ ...s.card, borderColor: "#FCA5A5", background: "#FEF2F2", color: "#B91C1C", fontSize: 13 }}>{error}</div>}
 
       <div style={s.card}>
-        <div style={s.sectionTitle}>Categories</div>
-        <div style={s.sectionSub}>Disabling is soft — existing transactions keep their label; it just leaves the live matching set and the correction dropdown.</div>
-
-        <table style={s.table}>
-          <thead>
-            <tr>
-              <th style={s.th}>Parent</th>
-              <th style={s.th}>Category</th>
-              <th style={s.th}>Kind</th>
-              <th style={s.th}>Status</th>
-              <th style={s.th}></th>
-            </tr>
-          </thead>
-          <tbody>
-            {leaves.map((c) => {
-              const parent = categories.find((p) => p.id === c.parent_id);
-              return (
-                <tr key={c.id}>
-                  <td style={{ ...s.td, color: "#8A8A98" }}>{parent?.name ?? "—"}</td>
-                  <td style={s.td}>{c.name}</td>
-                  <td style={s.td}>{c.kind}</td>
-                  <td style={s.td}>
-                    <span style={c.is_active ? s.badge("#DCFCE7", "#15803D") : s.badge("#F2F2F5", "#6B7280")}>{c.is_active ? "Active" : "Disabled"}</span>
-                  </td>
-                  <td style={s.td}>
-                    <div style={{ display: "flex", gap: 6 }}>
-                      <button style={s.btnGhost} onClick={() => renameCategory(c)}>
-                        Rename
-                      </button>
-                      <button style={c.is_active ? s.btnDanger : s.btnGood} onClick={() => toggleCategory(c)}>
-                        {c.is_active ? "Disable" : "Enable"}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-
-        <div style={{ display: "flex", gap: 8, marginTop: 16, flexWrap: "wrap", alignItems: "center" }}>
-          <input style={{ ...s.input, width: 200 }} placeholder="New category name" value={newCatName} onChange={(e) => setNewCatName(e.target.value)} />
-          <select style={s.select} value={newCatParent} onChange={(e) => setNewCatParent(e.target.value)}>
-            <option value="">Parent…</option>
-            {parents.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-          <select style={s.select} value={newCatKind} onChange={(e) => setNewCatKind(e.target.value as "income" | "expense")}>
-            <option value="expense">expense</option>
-            <option value="income">income</option>
-          </select>
-          <select style={s.select} value={newCatIcon} onChange={(e) => setNewCatIcon(e.target.value)}>
-            {ICONS.map((i) => (
-              <option key={i} value={i}>
-                {i}
-              </option>
-            ))}
-          </select>
-          <input style={{ ...s.input, width: 90 }} type="color" value={newCatColor} onChange={(e) => setNewCatColor(e.target.value)} />
-          <button style={s.btnPrimary} onClick={createCategory}>
-            Add category
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div>
+            <div style={s.sectionTitle}>Global rules</div>
+            <div style={s.sectionSub}>Evaluated top to bottom — first match wins. Use ↑/↓ to reorder so a narrow rule can sit above a broader one.</div>
+          </div>
+          <button style={s.btnPrimary} onClick={openModal}>
+            Add rule
           </button>
         </div>
-      </div>
-
-      <div style={s.card}>
-        <div style={s.sectionTitle}>Global rules</div>
-        <div style={s.sectionSub}>Evaluated top to bottom — first match wins. Use ↑/↓ to reorder so a narrow rule can sit above a broader one.</div>
 
         <table style={s.table}>
           <thead>
@@ -281,34 +187,47 @@ export function RulesTab() {
             ))}
           </tbody>
         </table>
-
-        <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-          <input style={{ ...s.input, width: 260 }} placeholder="Keyword (normalized text)" value={newRuleKeyword} onChange={(e) => setNewRuleKeyword(e.target.value)} />
-          <select style={s.select} value={newRuleCategory} onChange={(e) => setNewRuleCategory(e.target.value)}>
-            <option value="">Category…</option>
-            {leaves.map((c) => (
-              <option key={c.id} value={c.id}>
-                {categoryName(c.id)}
-              </option>
-            ))}
-          </select>
-          <button style={s.btnPrimary} onClick={createRule}>
-            Add rule
-          </button>
-          <button style={s.btnGhost} onClick={() => setTestingNewRule((v) => !v)}>
-            {testingNewRule ? "Hide test" : "Test first"}
-          </button>
-        </div>
-
-        {testingNewRule && (
-          <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid #F0F0F3" }}>
-            <div style={{ fontSize: 11.5, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: ".03em", marginBottom: 10 }}>
-              Test before saving (AR-08)
-            </div>
-            <TestCategorizationWidget initialDescription={newRuleKeyword} />
-          </div>
-        )}
       </div>
+
+      {modalOpen && (
+        <AdminModal title="Add rule" onClose={() => setModalOpen(false)}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#6B7280", marginBottom: 4 }}>Keyword (normalized text)</div>
+              <input style={{ ...s.input, width: "100%" }} value={newRuleKeyword} onChange={(e) => setNewRuleKeyword(e.target.value)} placeholder="e.g. vat charges" />
+            </div>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#6B7280", marginBottom: 4 }}>Category</div>
+              <select style={{ ...s.select, width: "100%" }} value={newRuleCategory} onChange={(e) => setNewRuleCategory(e.target.value)}>
+                <option value="">Choose a category…</option>
+                {leaves.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+              <button style={s.btnPrimary} onClick={createRule}>
+                Add rule
+              </button>
+              <button style={s.btnGhost} onClick={() => setTestingNewRule((v) => !v)}>
+                {testingNewRule ? "Hide test" : "Test first"}
+              </button>
+            </div>
+
+            {testingNewRule && (
+              <div style={{ marginTop: 8, paddingTop: 16, borderTop: "1px solid #F0F0F3" }}>
+                <div style={{ fontSize: 11.5, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: ".03em", marginBottom: 10 }}>
+                  Test before saving
+                </div>
+                <TestCategorizationWidget initialDescription={newRuleKeyword} />
+              </div>
+            )}
+          </div>
+        </AdminModal>
+      )}
     </div>
   );
 }

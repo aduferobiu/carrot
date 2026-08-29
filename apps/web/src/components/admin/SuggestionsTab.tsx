@@ -125,7 +125,7 @@ export function SuggestionsTab() {
           {testingId === sug.id && (
             <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid #F0F0F3" }}>
               <div style={{ fontSize: 11.5, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: ".03em", marginBottom: 10 }}>
-                Test before approving (AR-08)
+                Test before approving
               </div>
               <TestCategorizationWidget initialDescription={sug.sample_descriptions[0] ?? sug.normalized_description} />
             </div>

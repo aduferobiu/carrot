@@ -143,7 +143,7 @@ export function AdminSettings() {
         </Section>
 
         <Section
-          title="Categorization suggestion threshold (Tab 2)"
+          title="Categorization suggestion threshold"
           sub="How many corrections to the same (description, category) pair trigger a global suggestion, and whether that count is aggregated across all users or must come from one user alone."
           saving={savingKey === "suggestion_correction_threshold" || savingKey === "suggestion_aggregation_mode"}
           onSave={() => {
@@ -178,7 +178,7 @@ export function AdminSettings() {
         </Section>
 
         <Section
-          title="Personal rule threshold (Tab 3)"
+          title="Personal rule threshold"
           sub="How many of one user's own corrections to the same pattern auto-activate a personal rule for them."
           saving={savingKey === "personal_rule_correction_threshold"}
           onSave={() => save("personal_rule_correction_threshold", config.personal_rule_correction_threshold)}

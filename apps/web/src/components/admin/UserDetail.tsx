@@ -169,7 +169,7 @@ export function UserDetail({ userId }: { userId: string }) {
 
         <div style={s.card}>
           <div style={s.sectionTitle}>Personal categorization rules</div>
-          <div style={s.sectionSub}>Learned from this user&apos;s own correction history (AR-05).</div>
+          <div style={s.sectionSub}>Learned from this user&apos;s own correction history.</div>
           <table style={s.table}>
             <thead>
               <tr>
