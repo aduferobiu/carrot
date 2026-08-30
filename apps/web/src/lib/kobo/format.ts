@@ -43,6 +43,18 @@ export function currentMonthStart(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
 }
 
+/** Local-date (YYYY-MM-DD) string for today. */
+export function todayStr(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+
+/** e.g. "12 Jul" for a YYYY-MM-DD string, or "12 Jul 2025" when `year` is true. */
+export function shortDate(dateStr: string, year = false): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return `${d} ${MONTHS[m - 1]}${year ? ` ${y}` : ""}`;
+}
+
 export function addMonths(dateStr: string, months: number): string {
   const [y, m, d] = dateStr.split("-").map(Number);
   const dt = new Date(y, m - 1 + months, d);

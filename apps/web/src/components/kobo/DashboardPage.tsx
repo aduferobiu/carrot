@@ -5,7 +5,7 @@ import { useState } from "react";
 import { ChartBar } from "@/components/kobo/ChartBar";
 import { Icon } from "@/lib/kobo/icons";
 import { HealthScore } from "@/lib/kobo/data";
-import { currentMonthStart, monthLabel, naira, rgba } from "@/lib/kobo/format";
+import { addMonths, currentMonthStart, monthLabel, naira, rgba, shortDate, todayStr } from "@/lib/kobo/format";
 import { useElementHeight } from "@/lib/kobo/useElementHeight";
 import {
   budgetsView,
@@ -23,10 +23,18 @@ import {
 import { useKobo } from "@/lib/kobo/store";
 
 type Layout = "overview" | "analytics";
+type RangePreset = "1m" | "3m" | "6m" | "custom";
 
 const TABS: [Layout, string][] = [
   ["overview", "Overview"],
   ["analytics", "Analytics"],
+];
+
+const RANGE_PRESETS: [RangePreset, string][] = [
+  ["1m", "1M"],
+  ["3m", "3M"],
+  ["6m", "6M"],
+  ["custom", "Custom"],
 ];
 
 function bandColor(band: string): string {
@@ -118,6 +126,10 @@ export function DashboardPage() {
   const [dashLayout, setDashLayout] = useState<Layout>("overview");
   const [refreshing, setRefreshing] = useState(false);
   const [showBalance, setShowBalance] = useState(true);
+  const [rangePreset, setRangePreset] = useState<RangePreset>("1m");
+  const [customOpen, setCustomOpen] = useState(false);
+  const [customStart, setCustomStart] = useState(() => addMonths(todayStr(), -1));
+  const [customEnd, setCustomEnd] = useState(() => todayStr());
 
   async function handleRefresh() {
     if (refreshing) return;
@@ -131,12 +143,26 @@ export function DashboardPage() {
 
   const monthStart = currentMonthStart();
   const total = accounts.reduce((a, b) => a + b.balance, 0);
-  const { monthIn, monthOut, net } = monthTotals(transactions, monthStart);
+
+  const today = todayStr();
+  const rangeStart =
+    rangePreset === "custom" ? customStart : addMonths(today, -{ "1m": 1, "3m": 3, "6m": 6 }[rangePreset as "1m" | "3m" | "6m"]);
+  const rangeEnd = rangePreset === "custom" ? customEnd : today;
+  const scopedTx = transactions.filter((t) => {
+    const d = t.occurred_at.slice(0, 10);
+    return d >= rangeStart && d <= rangeEnd;
+  });
+  const { monthIn, monthOut, net } = monthTotals(scopedTx, rangeStart);
   const deltaFmt = (net >= 0 ? "+" : "–") + naira(Math.abs(net));
   const netFmt = deltaFmt;
+  const rangeLabel =
+    rangePreset === "custom"
+      ? `${shortDate(customStart, true)} – ${shortDate(customEnd, true)}`
+      : { "1m": "past month", "3m": "past 3 months", "6m": "past 6 months" }[rangePreset as "1m" | "3m" | "6m"];
+  const noSpendPhrase = rangePreset === "custom" ? `in ${rangeLabel}` : `in the ${rangeLabel}`;
 
   const recentTx = sortedTx(transactions).slice(0, 6).map((t) => txView(t, accounts, categories));
-  const spend = spendByCat(transactions, categories);
+  const spend = spendByCat(scopedTx, categories);
   const topCats = topCategories(spend, categories);
   const totSpend = Object.values(spend).reduce((a, b) => a + b, 0);
   const budgetsTop = budgetsView(budgets, transactions, categories, budgetAlertThresholds).slice(0, 3);
@@ -237,6 +263,130 @@ export function DashboardPage() {
             );
           })}
         </div>
+
+        <div style={{ position: "relative" }}>
+          <div
+            className="kb-seg"
+            style={{ display: "flex", gap: 4, padding: 4, background: "#fff", border: "1px solid #E6E6EB", borderRadius: 12 }}
+          >
+            {RANGE_PRESETS.map(([id, label]) => {
+              const isActive = rangePreset === id;
+              return (
+                <button
+                  key={id}
+                  onClick={() => {
+                    if (id === "custom") {
+                      setCustomOpen((v) => !v);
+                    } else {
+                      setRangePreset(id);
+                      setCustomOpen(false);
+                    }
+                  }}
+                  style={{
+                    height: 34,
+                    padding: "0 14px",
+                    border: "none",
+                    borderRadius: 9,
+                    fontFamily: "inherit",
+                    fontWeight: 700,
+                    fontSize: 13,
+                    cursor: "pointer",
+                    background: isActive ? "#15171C" : "transparent",
+                    color: isActive ? "#fff" : "#6B6F7B",
+                    transition: "all .15s",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {id === "custom" && rangePreset === "custom" ? `${shortDate(customStart)} – ${shortDate(customEnd)}` : label}
+                </button>
+              );
+            })}
+          </div>
+
+          {customOpen && (
+            <>
+              <div onClick={() => setCustomOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
+              <div
+                style={{
+                  position: "absolute",
+                  top: "calc(100% + 8px)",
+                  left: 0,
+                  zIndex: 41,
+                  background: "#fff",
+                  border: "1px solid #E6E6EB",
+                  borderRadius: 16,
+                  boxShadow: "0 14px 40px rgba(0,0,0,.12)",
+                  padding: 18,
+                  width: 280,
+                }}
+              >
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#6B6F7B", marginBottom: 10 }}>Custom range</div>
+                <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 11, color: "#8A8A98", marginBottom: 4 }}>From</div>
+                    <input
+                      type="date"
+                      value={customStart}
+                      max={customEnd}
+                      onChange={(e) => setCustomStart(e.target.value)}
+                      style={{
+                        width: "100%",
+                        height: 38,
+                        border: "1.5px solid #E6E6EB",
+                        borderRadius: 10,
+                        padding: "0 10px",
+                        fontFamily: "inherit",
+                        fontSize: 12.5,
+                        color: "#15171C",
+                      }}
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 11, color: "#8A8A98", marginBottom: 4 }}>To</div>
+                    <input
+                      type="date"
+                      value={customEnd}
+                      min={customStart}
+                      max={today}
+                      onChange={(e) => setCustomEnd(e.target.value)}
+                      style={{
+                        width: "100%",
+                        height: 38,
+                        border: "1.5px solid #E6E6EB",
+                        borderRadius: 10,
+                        padding: "0 10px",
+                        fontFamily: "inherit",
+                        fontSize: 12.5,
+                        color: "#15171C",
+                      }}
+                    />
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setRangePreset("custom");
+                    setCustomOpen(false);
+                  }}
+                  style={{
+                    width: "100%",
+                    height: 40,
+                    border: "none",
+                    borderRadius: 11,
+                    background: "#2C6BFF",
+                    color: "#fff",
+                    fontFamily: "inherit",
+                    fontWeight: 700,
+                    fontSize: 13,
+                    cursor: "pointer",
+                  }}
+                >
+                  Apply
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+
         <div style={{ flex: 1 }} />
         <div className="kb-dashbar-actions kb-hidem" style={{ display: "flex", gap: 10 }}>
           <button
@@ -407,7 +557,7 @@ export function DashboardPage() {
                         whiteSpace: "nowrap",
                       }}
                     >
-                      <Icon name="upRight" size={15} strokeWidth={2.2} /> {deltaFmt} net this month
+                      <Icon name="upRight" size={15} strokeWidth={2.2} /> {deltaFmt} net · {rangeLabel}
                     </div>
                   </div>
                 </div>
@@ -462,7 +612,9 @@ export function DashboardPage() {
             <HealthScoreCard healthScore={healthScore} onClick={toggleHealthModal} />
 
             <div style={{ background: "#fff", border: "1px solid #E6E6EB", borderRadius: 22, padding: 22 }}>
-              <div style={{ fontSize: 15.5, fontWeight: 800, marginBottom: 6 }}>Spending this month</div>
+              <div style={{ fontSize: 15.5, fontWeight: 800, marginBottom: 6 }}>
+                {`Spending · ${rangeLabel}`}
+              </div>
               <div style={{ fontSize: 12.5, color: "#8A8A98", marginBottom: 18 }}>
                 {naira(totSpend)} across {topCats.length} categories
               </div>
@@ -487,7 +639,7 @@ export function DashboardPage() {
                 </div>
                 <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 11 }}>
                   {topCats.length === 0 ? (
-                    <div style={{ fontSize: 12.5, color: "#8A8A98" }}>No spending yet this month</div>
+                    <div style={{ fontSize: 12.5, color: "#8A8A98" }}>No spending {noSpendPhrase}</div>
                   ) : (
                     topCats.slice(0, 3).map((c) => (
                       <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 9 }}>
@@ -603,7 +755,7 @@ export function DashboardPage() {
             </div>
 
             <div style={{ paddingTop: 16, borderTop: "1px solid #F0F0F3" }}>
-              <div style={{ fontSize: 12, color: "#8A8A98", fontWeight: 600 }}>Net this month</div>
+              <div style={{ fontSize: 12, color: "#8A8A98", fontWeight: 600 }}>{`Net · ${rangeLabel}`}</div>
               <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: "-.02em", marginTop: 4, color: "#15171C" }}>{netFmt}</div>
               <div style={{ display: "flex", gap: 12, marginTop: 14 }}>
                 <div style={{ flex: 1, background: "#F2FBF6", borderRadius: 14, padding: 14 }}>
@@ -621,7 +773,7 @@ export function DashboardPage() {
           <div style={{ background: "#fff", border: "1px solid #E6E6EB", borderRadius: 22, padding: 24 }}>
             <div style={{ fontSize: 15.5, fontWeight: 800, marginBottom: 18 }}>Spending by category</div>
             {topCats.length === 0 ? (
-              <EmptyState icon="grid" text="No spending yet this month" />
+              <EmptyState icon="grid" text={`No spending ${noSpendPhrase}`} />
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
                 {topCats.map((c) => (
