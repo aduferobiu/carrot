@@ -262,7 +262,7 @@ export function subscriptionRowView(s: Subscription, categories: Category[]): Su
   const c = catById(categories, s.category_id);
   return {
     id: s.id,
-    name: titleCase(s.merchant_label),
+    name: s.display_name || titleCase(s.merchant_label),
     icon: c.icon,
     iconBg: rgba(c.color, 0.12),
     iconColor: c.color,

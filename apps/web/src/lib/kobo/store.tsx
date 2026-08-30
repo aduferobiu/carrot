@@ -109,7 +109,7 @@ type KoboContextValue = KoboState & {
   deleteBudget: (id: string) => void;
   correctCat: (txId: string, catId: string) => void;
   dismissSubscription: (id: string) => void;
-  restoreSubscription: (id: string) => void;
+  renameSubscription: (id: string, name: string) => void;
   flagAsSubscription: (txId: string) => void;
   toggleHealthModal: () => void;
   openCategoryPicker: (txId: string) => void;
@@ -405,22 +405,23 @@ export function KoboProvider({ children }: { children: React.ReactNode }) {
     }
   }, [showToast, state.session]);
 
-  const restoreSubscription = useCallback(async (id: string) => {
+  const renameSubscription = useCallback(async (id: string, name: string) => {
+    const trimmed = name.trim();
     setState((s) => ({
       ...s,
-      subscriptions: s.subscriptions.map((sub) => (sub.id === id ? { ...sub, status: "active" as const } : sub)),
+      subscriptions: s.subscriptions.map((sub) => (sub.id === id ? { ...sub, display_name: trimmed || null } : sub)),
     }));
     const token = state.session?.access_token;
     try {
       const res = await fetch(`/api/subscriptions/${id}`, {
         method: "PATCH",
         headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
-        body: JSON.stringify({ status: "active" }),
+        body: JSON.stringify({ display_name: trimmed || null }),
       });
       if (!res.ok) throw new Error();
-      showToast("Marked as a subscription again");
+      showToast("Subscription renamed");
     } catch {
-      showToast("Couldn't update that subscription");
+      showToast("Couldn't rename that subscription");
     }
   }, [showToast, state.session]);
 
@@ -557,7 +558,7 @@ export function KoboProvider({ children }: { children: React.ReactNode }) {
       deleteBudget,
       correctCat,
       dismissSubscription,
-      restoreSubscription,
+      renameSubscription,
       flagAsSubscription,
       toggleHealthModal,
       openCategoryPicker,
@@ -594,7 +595,7 @@ export function KoboProvider({ children }: { children: React.ReactNode }) {
       deleteBudget,
       correctCat,
       dismissSubscription,
-      restoreSubscription,
+      renameSubscription,
       flagAsSubscription,
       toggleHealthModal,
       openCategoryPicker,

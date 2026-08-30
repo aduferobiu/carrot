@@ -1,13 +1,28 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { Icon } from "@/lib/kobo/icons";
 import { rgba } from "@/lib/kobo/format";
 import { useKobo } from "@/lib/kobo/store";
 
 export function BudgetModal() {
   const { budgetModal, budgetCat, budgetAmt, categories, closeBudget, setBudgetCat, setBudgetAmt, saveBudget } = useKobo();
+  const [catSearch, setCatSearch] = useState("");
+  const [catOpen, setCatOpen] = useState(false);
+  const leafCategories = useMemo(() => categories.filter((c) => c.parent_id), [categories]);
+  const filteredCategories = useMemo(() => {
+    const q = catSearch.trim().toLowerCase();
+    if (!q) return leafCategories;
+    return leafCategories.filter((c) => c.name.toLowerCase().includes(q));
+  }, [leafCategories, catSearch]);
+  const selectedCategory = leafCategories.find((c) => c.id === budgetCat) ?? null;
   if (!budgetModal) return null;
-  const leafCategories = categories.filter((c) => c.parent_id);
+
+  function pick(catId: string) {
+    setBudgetCat(catId);
+    setCatSearch("");
+    setCatOpen(false);
+  }
 
   return (
     <div
@@ -67,36 +82,102 @@ export function BudgetModal() {
         </div>
         <div style={{ padding: 22 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: "#6B6F7B", marginBottom: 10 }}>Category</div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", maxHeight: 148, overflowY: "auto" }}>
-            {leafCategories.map((c) => {
-              const sel = budgetCat === c.id;
-              return (
-                <button
-                  key={c.id}
-                  onClick={() => setBudgetCat(c.id)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 7,
-                    height: 36,
-                    padding: "0 12px",
-                    border: `1.5px solid ${sel ? c.color : "#E6E6EB"}`,
-                    borderRadius: 11,
-                    background: sel ? rgba(c.color, 0.14) : "#fff",
-                    fontFamily: "inherit",
-                    fontWeight: 600,
-                    fontSize: 12.5,
-                    cursor: "pointer",
-                    color: "#3A3A47",
-                  }}
-                >
-                  <span style={{ color: c.color }}>
-                    <Icon name={c.icon} size={18} />
-                  </span>
-                  {c.name}
-                </button>
-              );
-            })}
+          <div style={{ position: "relative" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                height: 42,
+                padding: "0 13px",
+                border: `1.5px solid ${catOpen ? "#2C6BFF" : "#E6E6EB"}`,
+                borderRadius: 12,
+              }}
+            >
+              {selectedCategory && !catOpen ? (
+                <span style={{ color: selectedCategory.color, display: "flex" }}>
+                  <Icon name={selectedCategory.icon} size={16} />
+                </span>
+              ) : (
+                <Icon name="search" size={16} />
+              )}
+              <input
+                value={catOpen ? catSearch : selectedCategory?.name ?? ""}
+                onFocus={() => {
+                  setCatOpen(true);
+                  setCatSearch("");
+                }}
+                onChange={(e) => setCatSearch(e.target.value)}
+                onBlur={() => setCatOpen(false)}
+                placeholder="Search categories"
+                style={{ flex: 1, border: "none", outline: "none", background: "transparent", fontFamily: "inherit", fontSize: 13.5, color: "#15171C" }}
+              />
+            </div>
+            {catOpen && (
+              <div
+                onMouseDown={(e) => e.preventDefault()}
+                style={{
+                  position: "absolute",
+                  top: "calc(100% + 6px)",
+                  left: 0,
+                  right: 0,
+                  maxHeight: 220,
+                  overflowY: "auto",
+                  background: "#fff",
+                  border: "1px solid #E6E6EB",
+                  borderRadius: 14,
+                  boxShadow: "0 14px 40px rgba(0,0,0,.12)",
+                  padding: 6,
+                  zIndex: 5,
+                }}
+              >
+                {filteredCategories.length === 0 && (
+                  <div style={{ padding: "10px 10px", fontSize: 13, color: "#8A8A98" }}>No categories match &quot;{catSearch}&quot;</div>
+                )}
+                {filteredCategories.map((c) => {
+                  const sel = budgetCat === c.id;
+                  return (
+                    <button
+                      key={c.id}
+                      onClick={() => pick(c.id)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 11,
+                        width: "100%",
+                        padding: "9px 10px",
+                        border: "none",
+                        borderRadius: 10,
+                        background: sel ? rgba(c.color, 0.12) : "transparent",
+                        fontFamily: "inherit",
+                        fontWeight: 600,
+                        fontSize: 13.5,
+                        cursor: "pointer",
+                        color: sel ? c.color : "#3A3A47",
+                        textAlign: "left",
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: 30,
+                          height: 30,
+                          borderRadius: 9,
+                          background: rgba(c.color, 0.14),
+                          color: c.color,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <Icon name={c.icon} size={15} />
+                      </span>
+                      {c.name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
           <div style={{ fontSize: 13, fontWeight: 700, color: "#6B6F7B", margin: "18px 0 10px" }}>Monthly limit</div>
           <div

@@ -36,6 +36,7 @@ export type Transaction = {
   amount: number;
   description: string | null;
   raw_description: string | null;
+  normalized_description: string | null;
   category_source: "rule-matched" | "user-corrected" | "fallback";
   occurred_at: string;
 };
@@ -65,6 +66,7 @@ export type Subscription = {
   user_id: string;
   account_id: string;
   merchant_label: string;
+  display_name: string | null;
   category_id: string | null;
   frequency: "weekly" | "monthly" | "yearly";
   average_amount: number;

@@ -2,24 +2,56 @@
 
 import { useState } from "react";
 import { Icon } from "@/lib/kobo/icons";
+import { Subscription } from "@/lib/kobo/data";
 import { monthlyRecurringTotal, subscriptionRowView, subscriptionsView } from "@/lib/kobo/selectors";
 import { useKobo } from "@/lib/kobo/store";
+import { SubscriptionDetailModal } from "@/components/kobo/SubscriptionDetailModal";
 
 export function SubscriptionsPage() {
-  const { subscriptions, categories, dismissSubscription, restoreSubscription } = useKobo();
-  const [showDismissed, setShowDismissed] = useState(false);
+  const { subscriptions, categories, accounts, dismissSubscription } = useKobo();
+  const [subsAcc, setSubsAcc] = useState("all");
+  const [openSub, setOpenSub] = useState<Subscription | null>(null);
 
-  const sorted = [...subscriptions].sort((a, b) => {
+  const scoped = subsAcc === "all" ? subscriptions : subscriptions.filter((s) => s.account_id === subsAcc);
+
+  const sorted = [...scoped].sort((a, b) => {
     if (!a.predicted_next_charge_at) return 1;
     if (!b.predicted_next_charge_at) return -1;
     return a.predicted_next_charge_at.localeCompare(b.predicted_next_charge_at);
   });
   const active = subscriptionsView(sorted, categories);
-  const dismissed = sorted.filter((s) => s.status === "dismissed").map((s) => subscriptionRowView(s, categories));
-  const recurTotal = monthlyRecurringTotal(subscriptions);
+  const recurTotal = monthlyRecurringTotal(scoped);
 
   return (
     <div style={{ maxWidth: 980, margin: "0 auto", animation: "fadeUp .4s ease backwards" }}>
+      {accounts.length > 1 && (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
+          {[{ id: "all", label: "All accounts" }, ...accounts.map((a) => ({ id: a.id, label: a.institution_name || a.name }))].map((a) => {
+            const isActive = subsAcc === a.id;
+            return (
+              <button
+                key={a.id}
+                onClick={() => setSubsAcc(a.id)}
+                style={{
+                  height: 36,
+                  padding: "0 15px",
+                  border: "1px solid #E6E6EB",
+                  borderRadius: 11,
+                  fontFamily: "inherit",
+                  fontWeight: 700,
+                  fontSize: 13,
+                  cursor: "pointer",
+                  background: isActive ? "#15171C" : "#fff",
+                  color: isActive ? "#fff" : "#4A4A57",
+                }}
+              >
+                {a.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       <div className="kb-resp" style={{ display: "grid", gridTemplateColumns: "1fr 1.3fr", gap: 20, marginBottom: 20 }}>
         <div
           style={{
@@ -62,17 +94,27 @@ export function SubscriptionsPage() {
 
       {active.length === 0 && (
         <div style={{ background: "#fff", border: "1px solid #E6E6EB", borderRadius: 22, padding: 32, textAlign: "center" }}>
-          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6 }}>No subscriptions detected yet</div>
+          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6 }}>
+            {subsAcc !== "all" ? "No subscriptions on this account" : "No subscriptions detected yet"}
+          </div>
           <div style={{ fontSize: 13, color: "#8A8A98", maxWidth: 380, margin: "0 auto" }}>
-            Subscriptions build up automatically once a charge repeats on the same account — link an account and sync a
-            few months of history, or flag one manually from the Transactions page.
+            {subsAcc !== "all"
+              ? "Try clearing the account filter, or check another account."
+              : "Subscriptions build up automatically once a charge repeats on the same account — link an account and sync a few months of history, or flag one manually from the Transactions page."}
           </div>
         </div>
       )}
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(300px,1fr))", gap: 16 }}>
         {active.map((s) => (
-          <div key={s.id} style={{ background: "#fff", border: "1px solid #E6E6EB", borderRadius: 20, padding: 20 }}>
+          <div
+            key={s.id}
+            onClick={() => {
+              const sub = sorted.find((x) => x.id === s.id);
+              if (sub) setOpenSub(sub);
+            }}
+            style={{ background: "#fff", border: "1px solid #E6E6EB", borderRadius: 20, padding: 20, cursor: "pointer" }}
+          >
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
               <div
                 style={{
@@ -108,7 +150,10 @@ export function SubscriptionsPage() {
               )}
             </div>
             <button
-              onClick={() => dismissSubscription(s.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                dismissSubscription(s.id);
+              }}
               style={{
                 width: "100%",
                 height: 38,
@@ -128,54 +173,7 @@ export function SubscriptionsPage() {
         ))}
       </div>
 
-      {dismissed.length > 0 && (
-        <div style={{ marginTop: 24 }}>
-          <span
-            onClick={() => setShowDismissed((v) => !v)}
-            style={{ fontSize: 13, fontWeight: 700, color: "#8A8A98", cursor: "pointer" }}
-          >
-            {showDismissed ? "Hide" : "Show"} dismissed ({dismissed.length})
-          </span>
-          {showDismissed && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
-              {dismissed.map((s) => (
-                <div
-                  key={s.id}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 12,
-                    background: "#fff",
-                    border: "1px solid #E6E6EB",
-                    borderRadius: 14,
-                    padding: "10px 14px",
-                  }}
-                >
-                  <div style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: 700, color: "#6B6F7B" }}>{s.name}</div>
-                  <div style={{ fontSize: 13, color: "#8A8A98" }}>{s.amtFmt}</div>
-                  <button
-                    onClick={() => restoreSubscription(s.id)}
-                    style={{
-                      height: 32,
-                      padding: "0 12px",
-                      border: "1px solid #E6E6EB",
-                      borderRadius: 9,
-                      background: "#fff",
-                      color: "#2C6BFF",
-                      fontFamily: "inherit",
-                      fontWeight: 700,
-                      fontSize: 12,
-                      cursor: "pointer",
-                    }}
-                  >
-                    Restore
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+      {openSub && <SubscriptionDetailModal subscription={openSub} onClose={() => setOpenSub(null)} />}
     </div>
   );
 }

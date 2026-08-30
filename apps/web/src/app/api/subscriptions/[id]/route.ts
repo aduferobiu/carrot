@@ -7,9 +7,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (userId instanceof NextResponse) return userId;
   const { id } = await params;
 
-  const { status } = (await req.json()) as { status?: "dismissed" | "active" };
-  if (status !== "dismissed" && status !== "active") {
+  const body = (await req.json()) as { status?: "dismissed" | "active"; display_name?: string | null };
+  if (body.status !== undefined && body.status !== "dismissed" && body.status !== "active") {
     return NextResponse.json({ error: "status must be 'dismissed' or 'active'" }, { status: 400 });
+  }
+  if (body.status === undefined && body.display_name === undefined) {
+    return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
   }
 
   const { data: existing, error: fetchError } = await supabase
@@ -24,9 +27,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "This subscription doesn't belong to you" }, { status: 403 });
   }
 
+  const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (body.status !== undefined) update.status = body.status;
+  if (body.display_name !== undefined) update.display_name = body.display_name?.trim() || null;
+
   const { data, error } = await supabase
     .from("subscriptions")
-    .update({ status, updated_at: new Date().toISOString() })
+    .update(update)
     .eq("id", id)
     .select()
     .single();
