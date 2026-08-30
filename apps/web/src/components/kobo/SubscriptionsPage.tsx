@@ -2,15 +2,14 @@
 
 import { useState } from "react";
 import { Icon } from "@/lib/kobo/icons";
-import { Subscription } from "@/lib/kobo/data";
-import { monthlyRecurringTotal, subscriptionRowView, subscriptionsView } from "@/lib/kobo/selectors";
+import { monthlyRecurringTotal, subscriptionsView } from "@/lib/kobo/selectors";
 import { useKobo } from "@/lib/kobo/store";
 import { SubscriptionDetailModal } from "@/components/kobo/SubscriptionDetailModal";
 
 export function SubscriptionsPage() {
-  const { subscriptions, categories, accounts, dismissSubscription } = useKobo();
+  const { subscriptions, categories, accounts } = useKobo();
   const [subsAcc, setSubsAcc] = useState("all");
-  const [openSub, setOpenSub] = useState<Subscription | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
 
   const scoped = subsAcc === "all" ? subscriptions : subscriptions.filter((s) => s.account_id === subsAcc);
 
@@ -109,10 +108,7 @@ export function SubscriptionsPage() {
         {active.map((s) => (
           <div
             key={s.id}
-            onClick={() => {
-              const sub = sorted.find((x) => x.id === s.id);
-              if (sub) setOpenSub(sub);
-            }}
+            onClick={() => setOpenId(s.id)}
             style={{ background: "#fff", border: "1px solid #E6E6EB", borderRadius: 20, padding: 20, cursor: "pointer" }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
@@ -149,31 +145,11 @@ export function SubscriptionsPage() {
                 <span style={{ fontSize: 11, fontWeight: 700, color: "#F59E0B" }}>Needs review</span>
               )}
             </div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                dismissSubscription(s.id);
-              }}
-              style={{
-                width: "100%",
-                height: 38,
-                border: "1px solid #E6E6EB",
-                borderRadius: 11,
-                background: "#fff",
-                color: "#8A8A98",
-                fontFamily: "inherit",
-                fontWeight: 700,
-                fontSize: 12.5,
-                cursor: "pointer",
-              }}
-            >
-              Not a subscription
-            </button>
           </div>
         ))}
       </div>
 
-      {openSub && <SubscriptionDetailModal subscription={openSub} onClose={() => setOpenSub(null)} />}
+      {openId && <SubscriptionDetailModal subscriptionId={openId} onClose={() => setOpenId(null)} />}
     </div>
   );
 }

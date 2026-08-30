@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/server/auth";
-import { getMonoAccount, MonoApiError } from "@/server/mono";
+import { getMonoBalanceFinal, getMonoBalanceRealtime, getMonoJobStatus, MonoApiError } from "@/server/mono";
 import { supabase } from "@/server/supabase";
 import { recordSyncOutcome, syncTransactions } from "@/server/accountSync";
 
@@ -8,6 +8,13 @@ import { recordSyncOutcome, syncTransactions } from "@/server/accountSync";
 // sync can run long, and the default serverless timeout would kill it
 // mid-upsert with no visible error.
 export const maxDuration = 60;
+
+const POLL_INTERVAL_MS = 1500;
+const MAX_POLL_ATTEMPTS = 5; // ~7.5s worst case — tune once real job timing is observed
+
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const userId = await requireAuth(req);
@@ -29,18 +36,34 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   try {
-    const details = await getMonoAccount(existing.mono_account_id);
-    const account = details.data.account;
+    let balanceResult = await getMonoBalanceRealtime(existing.mono_account_id);
 
-    const { data, error } = await supabase
-      .from("accounts")
-      .update({ balance: account.balance / 100 })
-      .eq("id", id)
-      .select()
-      .single();
+    if (balanceResult.jobStatus === "PROCESSING" && balanceResult.jobId) {
+      let finished = false;
+      for (let i = 0; i < MAX_POLL_ATTEMPTS && !finished; i++) {
+        await delay(POLL_INTERVAL_MS);
+        const status = await getMonoJobStatus(existing.mono_account_id, balanceResult.jobId);
+        if (status === "FINISHED") finished = true;
+        else if (status === "FAILED") break;
+      }
+      // If still not finished, fall through with whatever balanceResult
+      // already has — the account_updated webhook will correct the row
+      // asynchronously once the job actually completes.
+      if (finished) balanceResult = await getMonoBalanceFinal(existing.mono_account_id);
+    }
 
-    if (error || !data) {
-      return NextResponse.json({ error: error?.message ?? "Failed to update account balance" }, { status: 500 });
+    let data = existing;
+    if (balanceResult.balance != null) {
+      const { data: updated, error } = await supabase
+        .from("accounts")
+        .update({ balance: balanceResult.balance / 100 })
+        .eq("id", id)
+        .select()
+        .single();
+      if (error || !updated) {
+        return NextResponse.json({ error: error?.message ?? "Failed to update account balance" }, { status: 500 });
+      }
+      data = updated;
     }
 
     const result = await syncTransactions({

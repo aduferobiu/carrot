@@ -2,25 +2,37 @@
 
 import { useEffect, useState } from "react";
 import { Icon } from "@/lib/kobo/icons";
-import { Subscription } from "@/lib/kobo/data";
 import { sortedTx, subscriptionRowView, txView } from "@/lib/kobo/selectors";
 import { useKobo } from "@/lib/kobo/store";
 
-export function SubscriptionDetailModal({ subscription, onClose }: { subscription: Subscription; onClose: () => void }) {
-  const { transactions, accounts, categories, dismissSubscription, renameSubscription } = useKobo();
-  const view = subscriptionRowView(subscription, categories);
-  const [name, setName] = useState(view.name);
+export function SubscriptionDetailModal({ subscriptionId, onClose }: { subscriptionId: string; onClose: () => void }) {
+  const { subscriptions, transactions, accounts, categories, dismissSubscription, renameSubscription } = useKobo();
+  const subscription = subscriptions.find((s) => s.id === subscriptionId) ?? null;
+  const view = subscription ? subscriptionRowView(subscription, categories) : null;
+  const [name, setName] = useState(view?.name ?? "");
 
   useEffect(() => {
-    setName(view.name);
+    setName(view?.name ?? "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [subscription.id]);
+  }, [subscriptionId]);
+
+  // The dismiss action removes this subscription from the list it's read
+  // from, so close automatically rather than render a modal for a
+  // subscription that no longer exists.
+  useEffect(() => {
+    if (!subscription) onClose();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subscription]);
+
+  if (!subscription || !view) return null;
 
   const trimmedName = name.trim();
   const nameDirty = trimmedName.length > 0 && trimmedName !== view.name;
 
   function commitName() {
-    if (nameDirty) renameSubscription(subscription.id, trimmedName);
+    if (!nameDirty) return;
+    renameSubscription(subscription!.id, trimmedName);
+    onClose();
   }
 
   const matches = sortedTx(
@@ -28,7 +40,7 @@ export function SubscriptionDetailModal({ subscription, onClose }: { subscriptio
   );
 
   function notASubscription() {
-    dismissSubscription(subscription.id);
+    dismissSubscription(subscription!.id);
     onClose();
   }
 
@@ -53,7 +65,7 @@ export function SubscriptionDetailModal({ subscription, onClose }: { subscriptio
         style={{
           width: "100%",
           maxWidth: 460,
-          maxHeight: "min(640px, 84vh)",
+          maxHeight: "min(680px, 84vh)",
           background: "#fff",
           borderRadius: 24,
           animation: "pop .2s ease both",
@@ -93,7 +105,7 @@ export function SubscriptionDetailModal({ subscription, onClose }: { subscriptio
         </div>
 
         <div style={{ padding: "18px 22px", flexShrink: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
             <div
               style={{
                 width: 44,
@@ -121,8 +133,7 @@ export function SubscriptionDetailModal({ subscription, onClose }: { subscriptio
                 minWidth: 0,
                 border: "1.5px solid #E6E6EB",
                 borderRadius: 10,
-                padding: "6px 8px",
-                marginLeft: -8,
+                padding: "10px 12px",
                 outline: "none",
                 background: "transparent",
                 fontFamily: "inherit",
@@ -131,26 +142,6 @@ export function SubscriptionDetailModal({ subscription, onClose }: { subscriptio
                 color: "#15171C",
               }}
             />
-            {nameDirty && (
-              <button
-                onClick={commitName}
-                style={{
-                  height: 36,
-                  padding: "0 14px",
-                  border: "none",
-                  borderRadius: 10,
-                  background: "#2C6BFF",
-                  color: "#fff",
-                  fontFamily: "inherit",
-                  fontWeight: 700,
-                  fontSize: 12.5,
-                  cursor: "pointer",
-                  flexShrink: 0,
-                }}
-              >
-                Save
-              </button>
-            )}
           </div>
 
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, fontSize: 12.5, color: "#8A8A98", marginBottom: 4 }}>
@@ -200,12 +191,12 @@ export function SubscriptionDetailModal({ subscription, onClose }: { subscriptio
           })}
         </div>
 
-        <div style={{ padding: "14px 22px 20px", borderTop: "1px solid #F0F0F3", flexShrink: 0 }}>
+        <div style={{ display: "flex", gap: 10, padding: "14px 22px 20px", borderTop: "1px solid #F0F0F3", flexShrink: 0 }}>
           <button
             onClick={notASubscription}
             style={{
-              width: "100%",
-              height: 44,
+              flex: 1,
+              height: 46,
               border: "1px solid #E6E6EB",
               borderRadius: 12,
               background: "#fff",
@@ -217,6 +208,24 @@ export function SubscriptionDetailModal({ subscription, onClose }: { subscriptio
             }}
           >
             Not a subscription
+          </button>
+          <button
+            onClick={commitName}
+            disabled={!nameDirty}
+            style={{
+              flex: 1,
+              height: 46,
+              border: "none",
+              borderRadius: 12,
+              background: nameDirty ? "#2C6BFF" : "#E6E6EB",
+              color: nameDirty ? "#fff" : "#A0A0AC",
+              fontFamily: "inherit",
+              fontWeight: 800,
+              fontSize: 13,
+              cursor: nameDirty ? "pointer" : "not-allowed",
+            }}
+          >
+            Save
           </button>
         </div>
       </div>
