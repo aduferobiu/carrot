@@ -166,7 +166,7 @@ export function DashboardPage() {
   const topCats = topCategories(spend, categories);
   const totSpend = Object.values(spend).reduce((a, b) => a + b, 0);
   const budgetsTop = budgetsView(budgets, transactions, categories, budgetAlertThresholds).slice(0, 3);
-  const cashflowData = monthlyCashflow(transactions);
+  const cashflowData = monthlyCashflow(scopedTx, rangeStart, rangeEnd);
   const hasCashflow = cashflowData.some((c) => c.cred > 0 || c.deb > 0);
   const [barsRef, barsRowHeight] = useElementHeight<HTMLDivElement>();
   const barsMaxPx = Math.max(40, barsRowHeight - 36);
@@ -690,7 +690,7 @@ export function DashboardPage() {
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 20 }}>
               <div>
                 <div style={{ fontSize: 15.5, fontWeight: 800 }}>Cashflow</div>
-                <div style={{ fontSize: 12.5, color: "#8A8A98", marginTop: 2 }}>Credits vs debits · last 6 months</div>
+                <div style={{ fontSize: 12.5, color: "#8A8A98", marginTop: 2 }}>{`Credits vs debits · ${rangeLabel}`}</div>
               </div>
               <div style={{ display: "flex", gap: 16 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: "#6B6F7B" }}>

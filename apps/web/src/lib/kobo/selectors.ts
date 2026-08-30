@@ -180,12 +180,37 @@ const MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep
 /** Real credit/debit totals for the last 6 calendar months (oldest first),
  * computed from actual transactions — replaces what used to be a hardcoded
  * mock array feeding both the Cashflow chart and the Spending trend donut. */
-export function monthlyCashflow(transactions: Transaction[]): { m: string; cred: number; deb: number }[] {
-  const now = new Date();
+/** Buckets by calendar month. With no range given, defaults to the trailing
+ * 6 months from today; with a `rangeStart`/`rangeEnd` (YYYY-MM-DD), buckets
+ * every calendar month the range touches instead (capped at 24 buckets so a
+ * very wide custom range can't produce an unreadable chart). */
+export function monthlyCashflow(
+  transactions: Transaction[],
+  rangeStart?: string,
+  rangeEnd?: string,
+): { m: string; cred: number; deb: number }[] {
   const months: { key: string; m: string }[] = [];
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    months.push({ key: `${d.getFullYear()}-${d.getMonth()}`, m: MONTH_ABBR[d.getMonth()] });
+  if (rangeStart && rangeEnd) {
+    const [sy, smRaw] = rangeStart.split("-").map(Number);
+    const [ey, emRaw] = rangeEnd.split("-").map(Number);
+    let y = sy;
+    let m = smRaw - 1;
+    const endKey = `${ey}-${emRaw - 1}`;
+    for (let guard = 0; guard < 24; guard++) {
+      months.push({ key: `${y}-${m}`, m: MONTH_ABBR[m] });
+      if (`${y}-${m}` === endKey) break;
+      m++;
+      if (m > 11) {
+        m = 0;
+        y++;
+      }
+    }
+  } else {
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push({ key: `${d.getFullYear()}-${d.getMonth()}`, m: MONTH_ABBR[d.getMonth()] });
+    }
   }
   const totals = new Map(months.map((mo) => [mo.key, { cred: 0, deb: 0 }]));
   for (const t of transactions) {
