@@ -5,11 +5,13 @@ import { Icon } from "@/lib/kobo/icons";
 import { monthlyRecurringTotal, subscriptionsView } from "@/lib/kobo/selectors";
 import { useKobo } from "@/lib/kobo/store";
 import { SubscriptionDetailModal } from "@/components/kobo/SubscriptionDetailModal";
+import { AddSubscriptionModal } from "@/components/kobo/AddSubscriptionModal";
 
 export function SubscriptionsPage() {
   const { subscriptions, categories, accounts } = useKobo();
   const [subsAcc, setSubsAcc] = useState("all");
   const [openId, setOpenId] = useState<string | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
 
   const scoped = subsAcc === "all" ? subscriptions : subscriptions.filter((s) => s.account_id === subsAcc);
 
@@ -88,6 +90,28 @@ export function SubscriptionsPage() {
             Carrot watches your transaction history for charges that repeat on a regular schedule and lists them here — no
             setup needed. Not one of yours? Mark it "Not a subscription" and it won't come back.
           </div>
+          <button
+            onClick={() => setAddOpen(true)}
+            style={{
+              marginTop: 18,
+              alignSelf: "flex-start",
+              height: 46,
+              padding: "0 20px",
+              border: "none",
+              borderRadius: 13,
+              background: "#2C6BFF",
+              color: "#fff",
+              fontFamily: "inherit",
+              fontWeight: 700,
+              fontSize: 14,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <Icon name="plus" size={17} strokeWidth={2.2} /> Add subscription
+          </button>
         </div>
       </div>
 
@@ -150,6 +174,7 @@ export function SubscriptionsPage() {
       </div>
 
       {openId && <SubscriptionDetailModal subscriptionId={openId} onClose={() => setOpenId(null)} />}
+      {addOpen && <AddSubscriptionModal onClose={() => setAddOpen(false)} />}
     </div>
   );
 }

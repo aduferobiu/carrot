@@ -6,7 +6,8 @@ import { sortedTx, subscriptionRowView, txView } from "@/lib/kobo/selectors";
 import { useKobo } from "@/lib/kobo/store";
 
 export function SubscriptionDetailModal({ subscriptionId, onClose }: { subscriptionId: string; onClose: () => void }) {
-  const { subscriptions, transactions, accounts, categories, dismissSubscription, renameSubscription } = useKobo();
+  const { subscriptions, subscriptionTransactions, transactions, accounts, categories, dismissSubscription, renameSubscription, openTxDetail } =
+    useKobo();
   const subscription = subscriptions.find((s) => s.id === subscriptionId) ?? null;
   const view = subscription ? subscriptionRowView(subscription, categories) : null;
   const [name, setName] = useState(view?.name ?? "");
@@ -35,8 +36,13 @@ export function SubscriptionDetailModal({ subscriptionId, onClose }: { subscript
     onClose();
   }
 
+  const linkedIds = new Set(
+    subscriptionTransactions.filter((st) => st.subscription_id === subscription.id).map((st) => st.transaction_id),
+  );
   const matches = sortedTx(
-    transactions.filter((t) => t.account_id === subscription.account_id && t.normalized_description === subscription.merchant_label),
+    linkedIds.size > 0
+      ? transactions.filter((t) => linkedIds.has(t.id))
+      : transactions.filter((t) => t.account_id === subscription.account_id && t.normalized_description === subscription.merchant_label),
   );
 
   function notASubscription() {
@@ -166,7 +172,11 @@ export function SubscriptionDetailModal({ subscriptionId, onClose }: { subscript
           {matches.map((t) => {
             const row = txView(t, accounts, categories);
             return (
-              <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 10px", borderRadius: 12 }}>
+              <div
+                key={t.id}
+                onClick={() => openTxDetail(t.id)}
+                style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 10px", borderRadius: 12, cursor: "pointer" }}
+              >
                 <div
                   style={{
                     width: 36,

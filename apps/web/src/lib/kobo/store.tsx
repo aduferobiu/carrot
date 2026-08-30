@@ -13,7 +13,7 @@ import {
 } from "react";
 import { openMonoConnect } from "@/lib/mono";
 import { supabase } from "@/lib/supabase";
-import { Account, Budget, Category, HealthScore, Notification, Subscription, Transaction } from "./data";
+import { Account, Budget, Category, HealthScore, Notification, Subscription, SubscriptionTransaction, Transaction } from "./data";
 import { fetchAllRows } from "./fetchAllRows";
 
 export type ReauthAction = "delete" | "export" | "removeAccount" | null;
@@ -31,6 +31,7 @@ type KoboState = {
   budgets: Budget[];
   notifications: Notification[];
   subscriptions: Subscription[];
+  subscriptionTransactions: SubscriptionTransaction[];
   healthScore: HealthScore | null;
   bio: boolean;
   authMode: "login" | "register";
@@ -64,6 +65,7 @@ const initialState: KoboState = {
   budgets: [],
   notifications: [],
   subscriptions: [],
+  subscriptionTransactions: [],
   healthScore: null,
   bio: true,
   authMode: "login",
@@ -111,6 +113,7 @@ type KoboContextValue = KoboState & {
   dismissSubscription: (id: string) => void;
   renameSubscription: (id: string, name: string) => void;
   flagAsSubscription: (txId: string) => void;
+  createManualSubscription: (accountId: string, transactionIds: string[]) => void;
   toggleHealthModal: () => void;
   openCategoryPicker: (txId: string) => void;
   closeCategoryPicker: () => void;
@@ -192,6 +195,7 @@ export function KoboProvider({ children }: { children: React.ReactNode }) {
         budgets: [],
         notifications: [],
         subscriptions: [],
+        subscriptionTransactions: [],
         healthScore: null,
         profile: null,
       });
@@ -213,8 +217,9 @@ export function KoboProvider({ children }: { children: React.ReactNode }) {
       supabase.from("budgets").select("*"),
       supabase.from("notifications").select("*").order("created_at", { ascending: false }),
       supabase.from("subscriptions").select("*"),
+      supabase.from("subscription_transactions").select("*"),
       supabase.from("profiles").select("full_name").eq("id", userId).maybeSingle(),
-    ]).then(([cats, accs, txs, buds, notifs, subs, prof]) => {
+    ]).then(([cats, accs, txs, buds, notifs, subs, subTx, prof]) => {
       if (!mounted) return;
       const email = state.session?.user?.email ?? "";
       const fullName = prof.data?.full_name || email.split("@")[0] || "there";
@@ -225,6 +230,7 @@ export function KoboProvider({ children }: { children: React.ReactNode }) {
         budgets: buds.data ?? [],
         notifications: notifs.data ?? [],
         subscriptions: (subs.data ?? []) as Subscription[],
+        subscriptionTransactions: (subTx.data ?? []) as SubscriptionTransaction[],
         profile: { fullName, email, initials: initialsOf(fullName) },
         budgetCat: (cats.data ?? []).find((c) => c.parent_id)?.id ?? "",
         dataLoading: false,
@@ -435,18 +441,57 @@ export function KoboProvider({ children }: { children: React.ReactNode }) {
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || "Failed to flag subscription");
-      const { data } = await supabase.from("subscriptions").select("*").eq("id", body.subscriptionId).maybeSingle();
+      const [{ data }, { data: links }] = await Promise.all([
+        supabase.from("subscriptions").select("*").eq("id", body.subscriptionId).maybeSingle(),
+        supabase.from("subscription_transactions").select("*").eq("subscription_id", body.subscriptionId),
+      ]);
       if (data) {
         setState((s) => ({
           ...s,
           subscriptions: s.subscriptions.some((sub) => sub.id === data.id)
             ? s.subscriptions.map((sub) => (sub.id === data.id ? (data as Subscription) : sub))
             : [...s.subscriptions, data as Subscription],
+          subscriptionTransactions: [
+            ...s.subscriptionTransactions.filter((st) => st.subscription_id !== data.id),
+            ...((links ?? []) as SubscriptionTransaction[]),
+          ],
         }));
       }
       showToast("Marked as a subscription");
     } catch (err) {
       showToast(err instanceof Error ? err.message : "Couldn't flag this transaction");
+    }
+  }, [showToast, state.session]);
+
+  const createManualSubscription = useCallback(async (accountId: string, transactionIds: string[]) => {
+    const token = state.session?.access_token;
+    try {
+      const res = await fetch("/api/subscriptions/manual/select", {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+        body: JSON.stringify({ accountId, transactionIds }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Failed to create subscription");
+      const [{ data }, { data: links }] = await Promise.all([
+        supabase.from("subscriptions").select("*").eq("id", body.subscriptionId).maybeSingle(),
+        supabase.from("subscription_transactions").select("*").eq("subscription_id", body.subscriptionId),
+      ]);
+      if (data) {
+        setState((s) => ({
+          ...s,
+          subscriptions: s.subscriptions.some((sub) => sub.id === data.id)
+            ? s.subscriptions.map((sub) => (sub.id === data.id ? (data as Subscription) : sub))
+            : [...s.subscriptions, data as Subscription],
+          subscriptionTransactions: [
+            ...s.subscriptionTransactions.filter((st) => st.subscription_id !== data.id),
+            ...((links ?? []) as SubscriptionTransaction[]),
+          ],
+        }));
+      }
+      showToast("Subscription added");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Couldn't create that subscription");
     }
   }, [showToast, state.session]);
 
@@ -508,7 +553,7 @@ export function KoboProvider({ children }: { children: React.ReactNode }) {
           }),
         ),
       );
-      const [accs, txs, subs, healthRes] = await Promise.all([
+      const [accs, txs, subs, subTx, healthRes] = await Promise.all([
         supabase.from("accounts").select("*").order("created_at"),
         fetchAllRows<Transaction>((from, to) =>
           supabase
@@ -519,6 +564,7 @@ export function KoboProvider({ children }: { children: React.ReactNode }) {
             .range(from, to),
         ).then((data) => ({ data, error: null })),
         supabase.from("subscriptions").select("*"),
+        supabase.from("subscription_transactions").select("*"),
         fetch("/api/insights/health-score", { headers: { authorization: `Bearer ${token}` } }),
       ]);
       const health = healthRes.ok ? ((await healthRes.json()) as HealthScore) : null;
@@ -527,6 +573,7 @@ export function KoboProvider({ children }: { children: React.ReactNode }) {
         accounts: accs.data ?? s.accounts,
         transactions: (txs.data ?? s.transactions) as Transaction[],
         subscriptions: (subs.data ?? s.subscriptions) as Subscription[],
+        subscriptionTransactions: (subTx.data ?? s.subscriptionTransactions) as SubscriptionTransaction[],
         healthScore: health ?? s.healthScore,
       }));
       showToast("All balances refreshed just now");
@@ -560,6 +607,7 @@ export function KoboProvider({ children }: { children: React.ReactNode }) {
       dismissSubscription,
       renameSubscription,
       flagAsSubscription,
+      createManualSubscription,
       toggleHealthModal,
       openCategoryPicker,
       closeCategoryPicker,
@@ -597,6 +645,7 @@ export function KoboProvider({ children }: { children: React.ReactNode }) {
       dismissSubscription,
       renameSubscription,
       flagAsSubscription,
+      createManualSubscription,
       toggleHealthModal,
       openCategoryPicker,
       closeCategoryPicker,

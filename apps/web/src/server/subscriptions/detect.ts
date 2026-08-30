@@ -11,7 +11,7 @@ const DAY_MS = 1000 * 60 * 60 * 24;
 const STALE_TOLERANCE_DAYS = 3;
 const ALERT_WINDOW_DAYS = 2;
 
-function median(nums: number[]): number {
+export function median(nums: number[]): number {
   const sorted = [...nums].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
   return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
