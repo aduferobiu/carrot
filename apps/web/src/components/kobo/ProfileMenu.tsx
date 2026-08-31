@@ -61,6 +61,25 @@ export function ProfileMenu() {
         <div
           onClick={() => {
             toggleProfile();
+            router.push("/accounts");
+          }}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 11,
+            padding: "11px 12px",
+            borderRadius: 11,
+            cursor: "pointer",
+            fontWeight: 600,
+            fontSize: 14,
+            color: "#3A3A47",
+          }}
+        >
+          <Icon name="wallet" size={18} /> Accounts
+        </div>
+        <div
+          onClick={() => {
+            toggleProfile();
             router.push("/settings");
           }}
           style={{

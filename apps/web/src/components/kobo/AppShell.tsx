@@ -25,16 +25,17 @@ const ROUTES: [string, string, string][] = [
   ["settings", "Settings", "settings"],
 ];
 
-// The mobile bottom nav only has room for 5 — same set as before Subscriptions
-// was added, so Subscriptions (like Settings) is desktop-sidebar-only for now.
-const MOBILE_NAV_IDS = new Set(["dashboard", "transactions", "budgets", "insights", "accounts"]);
+// The mobile bottom nav only has room for 5. Accounts and Settings aren't in
+// it, but both are still reachable on mobile via the profile menu (see
+// ProfileMenu.tsx).
+const MOBILE_NAV_IDS = new Set(["dashboard", "transactions", "budgets", "insights", "subscriptions"]);
 
 const SHORT_LABELS: Record<string, string> = {
   dashboard: "Home",
   transactions: "Activity",
   budgets: "Budgets",
   insights: "Insights",
-  accounts: "Accounts",
+  subscriptions: "Subs",
 };
 
 export function AppShell({ children }: { children: React.ReactNode }) {
