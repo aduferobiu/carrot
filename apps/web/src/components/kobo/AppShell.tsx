@@ -97,7 +97,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     dashboard: ["Home", `Good morning, ${profile?.fullName.split(" ")[0] ?? ""}`],
     transactions: ["Transactions", "Every account, one feed"],
     budgets: ["Budgets", `${monthLabel(currentMonthStart())} · category limits`],
-    insights: ["Insights", "Patterns across six months"],
+    insights: ["Insights", "Spending patterns and trends"],
     subscriptions: ["Subscriptions", "Recurring charges Carrot has spotted"],
     accounts: ["Accounts", "Linked banks & wallets"],
     settings: ["Settings", "Profile, data & privacy"],
